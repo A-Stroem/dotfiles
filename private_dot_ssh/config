@@ -24,7 +24,7 @@ Host *
   # Enable connection multiplexing for faster subsequent connections
   ControlMaster auto
   ControlPath ~/.ssh/sockets/%r@%h-%p
-  ControlPersist 600
+  ControlPersist 120
   
   # Use stronger ciphers
   Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr

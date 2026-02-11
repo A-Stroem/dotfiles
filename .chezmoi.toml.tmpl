@@ -1,0 +1,23 @@
+{{- $machineType := promptStringOnce . "machineType" "Machine type (work or personal)" -}}
+{{- $name := promptStringOnce . "name" "Your full name" -}}
+{{- $personalEmail := promptStringOnce . "personalEmail" "Personal email address" -}}
+{{- $workEmail := promptStringOnce . "workEmail" "Work email address" -}}
+
+[data]
+    machineType = {{ $machineType | quote }}
+    name = {{ $name | quote }}
+    personalEmail = {{ $personalEmail | quote }}
+    workEmail = {{ $workEmail | quote }}
+
+    # Derived from machineType — never set these manually
+    isWork = {{ eq $machineType "work" }}
+    isPersonal = {{ eq $machineType "personal" }}
+
+[git]
+    autoCommit = false
+    autoPush = false
+
+[diff]
+    # Uses builtin diff; override in ~/.config/chezmoi/chezmoi.toml if you want VS Code:
+    # command = "code"
+    # args = ["--wait", "--diff"]
