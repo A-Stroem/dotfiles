@@ -101,6 +101,12 @@ if ! command -v git-secrets >/dev/null 2>&1; then
   if is_darwin; then
     brew install git-secrets
   elif is_linux; then
+    # Install build dependencies if not present
+    if ! command -v make >/dev/null 2>&1; then
+      echo "📦 Installing build tools..."
+      sudo apt-get install -y build-essential
+    fi
+    
     # Clone and install
     if [ ! -d "/tmp/git-secrets" ]; then
       git clone https://github.com/awslabs/git-secrets.git /tmp/git-secrets
@@ -163,30 +169,12 @@ EOF
   echo "✅ Created gitleaks configuration"
 fi
 
-# ----------------------------
-# Install global git hooks (optional)
-# ----------------------------
 echo ""
 echo "📝 Security tools installed successfully!"
 echo ""
 echo "⚠️  IMPORTANT: Set up git hooks in your repositories:"
 echo "  1. cd <your-repo>"
-echo "  2. Create .pre-commit-config.yaml with:"
-echo ""
-cat << 'EOF'
-repos:
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.2
-    hooks:
-      - id: gitleaks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: check-added-large-files
-      - id: check-merge-conflict
-      - id: trailing-whitespace
-EOF
-echo ""
+echo "  2. Create .pre-commit-config.yaml"
 echo "  3. Run: pre-commit install"
 echo ""
 echo "🔐 Test your security setup with:"

@@ -1,12 +1,10 @@
 # ============================================================
-# Global git config - templated for work/personal machines
+# Global git config
 # ============================================================
 
 [user]
-  name = {{ .name }}
-  email = {{ .email }}
-  # Update this after GPG key setup:
-  # git config --global user.signingkey YOUR_GPG_KEY_ID
+  name = {{ .name | quote }}
+  email = {{ if eq .machineType "work" }}{{ .workEmail | quote }}{{ else }}{{ .personalEmail | quote }}{{ end }}
 
 [init]
   defaultBranch = main
@@ -22,7 +20,7 @@
   verbose = true
 
 [tag]
-  gpgsign = true
+  gpgsign = false
 
 [gpg]
   program = gpg
@@ -62,7 +60,7 @@
   submoduleSummary = true
 
 [log]
-  showSignature = true
+  showSignature = false
 
 [alias]
   amend = commit --amend --no-edit
@@ -77,7 +75,7 @@
 [url "git@github.com:"]
   insteadOf = https://github.com/
 
-{{- if .isPersonal }}
+{{ if eq .machineType "personal" -}}
 # Personal machine - use includeIf for work repos
 [includeIf "gitdir:~/work/"]
   path = ~/.gitconfig-work
