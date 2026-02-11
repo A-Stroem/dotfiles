@@ -170,9 +170,7 @@ elif is_linux; then
   # Install kubectl (architecture-aware)
   if ! command -v kubectl >/dev/null 2>&1; then
     echo "📦 Installing kubectl..."
-    local kube_arch
     kube_arch="$(get_arch)"
-    local kube_stable
     kube_stable="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
     curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl"
     # Verify checksum
@@ -204,9 +202,7 @@ elif is_linux; then
   # Install k9s (latest release, architecture-aware)
   if ! command -v k9s >/dev/null 2>&1; then
     echo "📦 Installing k9s..."
-    local k9s_arch
     k9s_arch="$(get_arch)"
-    local k9s_version
     k9s_version="$(github_latest_tag derailed/k9s)"
     wget -qO- "https://github.com/derailed/k9s/releases/download/${k9s_version}/k9s_Linux_${k9s_arch}.tar.gz" | tar xvz -C /tmp
     sudo mv /tmp/k9s /usr/local/bin/

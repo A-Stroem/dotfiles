@@ -1,0 +1,23 @@
+{{- if .isWork -}}
+#!/usr/bin/env bash
+# ============================================================
+# Work-specific tools installation (WORK MACHINES ONLY)
+# Add your company-specific tools below.
+# ============================================================
+
+set -euo pipefail
+
+echo "🏢 Installing work-specific tools..."
+
+# Add your company-specific install blocks here, for example:
+#
+# if ! command -v some-tool >/dev/null 2>&1; then
+#   echo "📦 Installing some-tool..."
+#   # install commands
+# fi
+
+echo "✅ Work-specific tools installation complete"
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping work-specific tools (personal machine)"
+{{- end -}}

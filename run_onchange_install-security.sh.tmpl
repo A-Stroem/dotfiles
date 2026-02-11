@@ -35,11 +35,9 @@ if ! command -v gitleaks >/dev/null 2>&1; then
   if is_darwin; then
     brew install gitleaks
   elif is_linux; then
-    local gl_arch
     gl_arch="$(get_arch)"
-    local gl_tag
     gl_tag="$(github_latest_tag gitleaks/gitleaks)"
-    local gl_version="${gl_tag#v}"
+    gl_version="${gl_tag#v}"
     wget -qO- "https://github.com/gitleaks/gitleaks/releases/download/${gl_tag}/gitleaks_${gl_version}_linux_${gl_arch}.tar.gz" \
       | tar xvz -C /tmp
     sudo mv /tmp/gitleaks /usr/local/bin/
