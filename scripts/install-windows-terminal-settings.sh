@@ -52,25 +52,117 @@ if [ -z "$WSL_WT_SETTINGS" ]; then
     exit 1
 fi
 
-# Backup existing settings
-if [ -f "$WSL_WT_SETTINGS/settings.json" ]; then
-    echo "📦 Backing up existing settings..."
-    cp "$WSL_WT_SETTINGS/settings.json" "$WSL_WT_SETTINGS/settings.json.backup.$(date +%Y%m%d_%H%M%S)"
-    echo "✅ Backup created: settings.json.backup.$(date +%Y%m%d_%H%M%S)"
-fi
+WT_SETTINGS_FILE="$WSL_WT_SETTINGS/settings.json"
 
-# Copy new settings
-echo "📝 Installing new settings..."
-if [ ! -f "$HOME/.config/windows-terminal/settings.json" ]; then
-    echo "❌ Source settings file not found: $HOME/.config/windows-terminal/settings.json"
-    echo "   Run 'chezmoi apply' first to create this file."
+# Backup existing settings
+if [ -f "$WT_SETTINGS_FILE" ]; then
+    echo "📦 Backing up existing settings..."
+    backup_file="$WT_SETTINGS_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+    cp "$WT_SETTINGS_FILE" "$backup_file"
+    echo "✅ Backup created: $(basename "$backup_file")"
+else
+    echo "❌ Windows Terminal settings.json not found at: $WT_SETTINGS_FILE"
+    echo "   Open Windows Terminal once so it can generate settings.json, then rerun this script."
     exit 1
 fi
 
-cp "$HOME/.config/windows-terminal/settings.json" "$WSL_WT_SETTINGS/settings.json"
+echo "🎨 Applying cosmetic settings (without replacing your profiles)..."
+python3 - "$WT_SETTINGS_FILE" <<'PY'
+import json
+import sys
+
+settings_path = sys.argv[1]
+
+with open(settings_path, "r", encoding="utf-8") as f:
+    settings = json.load(f)
+
+profiles = settings.setdefault("profiles", {})
+defaults = profiles.setdefault("defaults", {})
+
+# Cosmetic defaults only
+defaults.setdefault("font", {})["face"] = "FiraCode Nerd Font"
+defaults["colorScheme"] = "Dracula (Dotfiles)"
+defaults["cursorShape"] = "bar"
+defaults["padding"] = "8, 8, 8, 8"
+defaults["useAcrylic"] = False
+
+schemes = settings.setdefault("schemes", [])
+scheme_name = "Dracula (Dotfiles)"
+dracula_scheme = {
+    "name": scheme_name,
+    "background": "#14151D",
+    "foreground": "#F8F8F2",
+    "selectionBackground": "#44475A",
+    "cursorColor": "#F8F8F2",
+    "black": "#21222C",
+    "red": "#FF5555",
+    "green": "#50FA7B",
+    "yellow": "#F1FA8C",
+    "blue": "#BD93F9",
+    "purple": "#FF79C6",
+    "cyan": "#8BE9FD",
+    "white": "#F8F8F2",
+    "brightBlack": "#6272A4",
+    "brightRed": "#FF6E6E",
+    "brightGreen": "#69FF94",
+    "brightYellow": "#FFFFA5",
+    "brightBlue": "#D6ACFF",
+    "brightPurple": "#FF92DF",
+    "brightCyan": "#A4FFFF",
+    "brightWhite": "#FFFFFF",
+}
+
+existing_scheme = next((scheme for scheme in schemes if scheme.get("name") == scheme_name), None)
+if existing_scheme is None:
+    schemes.append(dracula_scheme)
+else:
+    existing_scheme.update(dracula_scheme)
+
+profile_list = profiles.setdefault("list", [])
+wsl_profile = next(
+    (
+        profile
+        for profile in profile_list
+        if profile.get("guid") == "{2c4de342-38b7-51cf-b940-2309a097f518}"
+        or profile.get("name") == "Ubuntu (WSL)"
+    ),
+    None,
+)
+
+if wsl_profile is None:
+    wsl_profile = {
+        "guid": "{2c4de342-38b7-51cf-b940-2309a097f518}",
+        "name": "Ubuntu (WSL)",
+        "source": "Windows.Terminal.Wsl",
+        "startingDirectory": "~",
+    }
+    profile_list.append(wsl_profile)
+else:
+    wsl_profile.setdefault("source", "Windows.Terminal.Wsl")
+    wsl_profile.setdefault("startingDirectory", "~")
+
+default_profile = None
+for profile in profile_list:
+    if profile.get("source") == "Windows.Terminal.Wsl" and profile.get("guid"):
+        default_profile = profile["guid"]
+        break
+
+if default_profile:
+    settings["defaultProfile"] = default_profile
+
+with open(settings_path, "w", encoding="utf-8") as f:
+    json.dump(settings, f, indent=2)
+    f.write("\n")
+
+print("✅ Applied cosmetic settings and preserved existing profile definitions.")
+if default_profile:
+    print(f"✅ Default profile set to WSL profile: {default_profile}")
+else:
+    print("⚠️ No WSL profile GUID found; defaultProfile left unchanged.")
+PY
 
 echo ""
-echo "✅ Windows Terminal settings installed!"
+echo "✅ Windows Terminal settings updated!"
 echo "📁 Location: $(wslpath -w "$WSL_WT_SETTINGS")"
 echo ""
 echo "⚠️  If you haven't installed FiraCode Nerd Font yet:"
