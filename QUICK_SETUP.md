@@ -4,6 +4,57 @@ Step-by-step instructions for setting up a fresh machine. Works on both WSL2 Ubu
 
 ---
 
+## Prerequisites: SSH Key for GitHub
+
+A fresh WSL instance or new Mac won't have an SSH key. You need one before you can clone the dotfiles repo. These steps are the same on both WSL and macOS.
+
+### Generate a new SSH key
+
+```bash
+# Generate an Ed25519 key (recommended)
+ssh-keygen -t ed25519 -C "33464978+A-Stroem@users.noreply.github.com"
+
+# When prompted:
+#   File → press Enter to accept default (~/.ssh/id_ed25519)
+#   Passphrase → enter a strong passphrase (or leave empty for convenience)
+```
+
+### Start the SSH agent and add the key
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+### Copy the public key
+
+```bash
+# WSL / Linux
+cat ~/.ssh/id_ed25519.pub
+
+# macOS (copies to clipboard)
+pbcopy < ~/.ssh/id_ed25519.pub
+```
+
+### Add it to GitHub
+
+1. Go to [github.com/settings/keys](https://github.com/settings/keys)
+2. Click **New SSH key**
+3. Title: something like `WSL Ubuntu 2025` or `MacBook Pro`
+4. Paste the public key
+5. Click **Add SSH key**
+
+### Verify it works
+
+```bash
+ssh -T git@github.com
+# Should print: "Hi A-Stroem! You've successfully authenticated..."
+```
+
+Now you're ready to clone.
+
+---
+
 ## WSL2 Ubuntu — Fresh Install
 
 ### Step 1: Bootstrap
@@ -54,10 +105,6 @@ exec zsh
 gpg --full-generate-key
 gpg --list-secret-keys --keyid-format=long
 git config --global user.signingkey YOUR_KEY_ID
-
-# Set up SSH key (if needed)
-ssh-keygen -t ed25519 -C "your_email@example.com"
-# Add public key to GitHub/GitLab
 
 # 1Password (personal machines only)
 op signin
@@ -124,7 +171,16 @@ exec zsh
 
 ### Step 4: Post-Install
 
-Same as WSL — GPG key, SSH key, 1Password signin, work directory.
+Same as WSL — GPG key, 1Password signin, work directory.
+
+On macOS, you can also add this to `~/.ssh/config` to persist the key in the macOS Keychain (so you don't have to `ssh-add` after every reboot):
+
+```
+Host github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+```
 
 ### Step 5: Install Nerd Font (for Starship icons)
 
@@ -225,6 +281,8 @@ direnv allow
 
 | Problem | Fix |
 |---------|-----|
+| `Permission denied (publickey)` during clone | SSH key not set up — see Prerequisites section above |
+| SSH key not persisting after reboot (macOS) | Add `UseKeychain yes` to `~/.ssh/config` — see macOS Step 4 |
 | Prompts not appearing | Use `chezmoi init --prompt`, not `chezmoi apply` |
 | zsh not default shell | `chsh -s $(which zsh)` then restart terminal |
 | 1Password not working | `op signin` then `op account list` |
