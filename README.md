@@ -14,6 +14,7 @@ Built for MSSP/SOC workflows: Ansible automation, Kubernetes management, multi-c
 - **Kubernetes**: kubectl, kubectx/kubens, helm, k9s (latest versions auto-fetched from GitHub)
 - **Modern CLI**: bat, eza, ripgrep, fd, fzf, zoxide
 - **Tmux**: Session management with customer context in status bar
+- **WSL terminal UX**: Automatic Windows Terminal profile merge (non-destructive) with WSL as default profile
 
 ## Quick Start
 
@@ -29,6 +30,9 @@ curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/boot
 # 3. Restart your shell
 exec zsh
 ```
+
+On WSL, `chezmoi apply` also merges a managed Windows Terminal WSL profile and sets it as default without overwriting your existing profiles.
+Set Windows' **Default terminal application** to **Windows Terminal** once in Windows Terminal > Settings > Startup.
 
 ### Fresh macOS Setup
 
@@ -68,21 +72,21 @@ dotfiles/
 ├── dot_config/
 │   ├── starship.toml                          # Starship prompt config
 │   ├── mise/config.toml                       # Runtime version management
-│   ├── direnv/direnvrc.tmpl                   # Shared direnv helpers (templated)
-│   └── windows-terminal/settings.json         # Windows Terminal settings
+│   └── direnv/direnvrc.tmpl                   # Shared direnv helpers (templated)
 ├── private_dot_ssh/
 │   └── config                                 # SSH config
 ├── run_onchange_install-core.sh.tmpl          # Core packages (apt/brew, kubectl, k9s, helm, etc.)
 ├── run_onchange_install-security.sh.tmpl      # Security tools (gitleaks, trivy, checkov, pre-commit)
 ├── run_onchange_install-1password-cli.sh.tmpl # 1Password CLI (personal machines only)
 ├── run_onchange_install-work-tools.sh.tmpl    # Company-specific tools (work machines only)
+├── run_onchange_install-windows-terminal.sh.tmpl # WSL-only Windows Terminal profile merge
 ├── example-personal.envrc                     # Example .envrc with 1Password integration
 ├── example-work.envrc                         # Example .envrc with file-based secrets
 └── scripts/
     ├── bootstrap-from-zero-wsl.sh             # WSL bootstrap (curl, git, chezmoi)
     ├── bootstrap-from-zero-mac.sh             # macOS bootstrap (Homebrew, git, chezmoi)
     ├── download-nerd-font.sh                  # Nerd Font installer
-    └── install-windows-terminal-settings.sh   # Windows Terminal config installer
+    └── install-windows-terminal-settings.sh   # Windows Terminal profile merge installer
 ```
 
 Key naming conventions:
@@ -218,6 +222,22 @@ echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
 ```bash
 chsh -s $(which zsh)
 # Restart terminal
+```
+
+### Windows Terminal did not switch to WSL profile
+
+The merge is automatic on WSL during `chezmoi apply` and preserves existing profiles.
+
+If Windows Terminal was never opened before, open it once and run:
+
+```bash
+chezmoi apply
+```
+
+Or run the installer directly:
+
+```bash
+bash ~/.local/share/chezmoi/scripts/install-windows-terminal-settings.sh
 ```
 
 ### Force re-run of install scripts

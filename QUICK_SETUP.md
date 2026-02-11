@@ -261,9 +261,15 @@ Host github.com
 bash scripts/download-nerd-font.sh
 ```
 
-For WSL, also configure Windows Terminal:
+On WSL, Windows Terminal is configured automatically during `chezmoi init --apply` / `chezmoi apply`.
+- Existing profiles are preserved.
+- A managed `WSL (chezmoi)` profile is added/updated and set as default.
+- One-time Windows host setting: in Windows Terminal > Settings > Startup, set **Default terminal application** to **Windows Terminal**.
+
+If Windows Terminal had never been opened before setup, open it once and then run:
+
 ```bash
-bash scripts/install-windows-terminal-settings.sh
+chezmoi apply
 ```
 
 ---

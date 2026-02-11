@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# ============================================================
+# Configure Windows Terminal on WSL (non-destructive)
+# ============================================================
+
+set -euo pipefail
+
+# Only run this integration on WSL.
+if ! grep -qi microsoft /proc/version 2>/dev/null; then
+  exit 0
+fi
+
+if ! command -v chezmoi >/dev/null 2>&1; then
+  echo "WARN: chezmoi not found in PATH; skipping Windows Terminal setup."
+  exit 0
+fi
+
+CHEZMOI_SOURCE_DIR="$(chezmoi source-path 2>/dev/null || true)"
+if [[ -z "$CHEZMOI_SOURCE_DIR" ]]; then
+  echo "WARN: Could not determine chezmoi source path; skipping Windows Terminal setup."
+  exit 0
+fi
+
+INSTALL_SCRIPT="$CHEZMOI_SOURCE_DIR/scripts/install-windows-terminal-settings.sh"
+if [[ ! -f "$INSTALL_SCRIPT" ]]; then
+  echo "WARN: Windows Terminal installer script not found at $INSTALL_SCRIPT"
+  exit 0
+fi
+
+bash "$INSTALL_SCRIPT"

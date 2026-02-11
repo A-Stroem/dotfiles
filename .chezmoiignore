@@ -9,9 +9,6 @@ WORK_VS_PERSONAL.md
 LICENSE
 *.md
 
-# Windows Terminal settings - managed by script
-.config/windows-terminal/
-
 # Scripts directory - only for bootstrapping
 scripts/
 
