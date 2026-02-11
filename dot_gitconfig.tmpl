@@ -10,7 +10,7 @@
   defaultBranch = main
 
 [core]
-  editor = code --wait
+  # Editor: uses $EDITOR from zshrc (code --wait or vim fallback)
   autocrlf = input
   whitespace = space-before-tab,-indent-with-non-tab,trailing-space
   attributesfile = ~/.gitattributes
@@ -51,7 +51,7 @@
 
 [merge]
   conflictstyle = zdiff3
-  tool = code
+  tool = vimdiff
 
 [rerere]
   enabled = true

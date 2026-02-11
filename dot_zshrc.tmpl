@@ -286,7 +286,7 @@ psg() {
 # Kill process on port
 killport() {
   local port="${1:?usage: killport <port>}"
-  lsof -ti:$port | xargs kill -9
+  lsof -ti:"$port" | xargs kill -9
 }
 
 {{- if .isPersonal }}
