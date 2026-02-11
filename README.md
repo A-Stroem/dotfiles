@@ -1,356 +1,238 @@
-# 🏠 Dotfiles (macOS + WSL2 Ubuntu)
+# Dotfiles (macOS + WSL2 Ubuntu)
 
-Modern, security-focused dotfiles for MSSP/SOC workflows with Ansible automation, Kubernetes management, and multi-customer environment support.
+Modern, security-focused dotfiles managed by [chezmoi](https://www.chezmoi.io/) with automatic work/personal machine detection.
 
-## ✨ Features
+Built for MSSP/SOC workflows: Ansible automation, Kubernetes management, multi-customer environment support, and 1Password secret integration.
 
-- **🐚 Shell**: zsh with Starship prompt showing customer context, K8s cluster, AWS profile
-- **📦 Package Management**: mise for runtime versions, Homebrew/apt for system packages
-- **🔐 Secrets**: 1Password CLI integration with direnv for per-project secrets
-- **🔒 Security**: gitleaks, trivy, checkov for scanning; GPG commit signing
-- **⚙️ Ansible**: Vault helpers, inventory shortcuts, linting
-- **☸️ Kubernetes**: kubectx/kubens, context awareness in prompt
-- **🔧 Modern CLI**: bat, eza, ripgrep, fd, fzf, zoxide
-- **📝 Session Management**: tmux with customer context in status bar
+## Features
 
-## 🚀 Quick Start
+- **Shell**: zsh with Starship prompt showing customer context, K8s cluster, AWS profile
+- **Package management**: mise for runtime versions, Homebrew (macOS) / apt (Linux) for system packages
+- **Secrets**: 1Password CLI + direnv for per-project secrets (personal machines)
+- **Security**: gitleaks, trivy, checkov, pre-commit, git-secrets
+- **Ansible**: Vault helpers, inventory shortcuts, linting
+- **Kubernetes**: kubectl, kubectx/kubens, helm, k9s (latest versions auto-fetched from GitHub)
+- **Modern CLI**: bat, eza, ripgrep, fd, fzf, zoxide
+- **Tmux**: Session management with customer context in status bar
 
-### First Time Setup (WSL2 Ubuntu)
+## Quick Start
+
+### Fresh WSL2 Ubuntu Setup
 
 ```bash
-# 1. Bootstrap system
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/dotfiles/main/scripts/bootstrap-from-zero-wsl.sh | bash
+# 1. Run the bootstrap script (installs curl, git, chezmoi)
+curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-wsl.sh | bash
 
-# 2. Initialize dotfiles
-~/.local/bin/chezmoi init --apply git@github.com:YOUR_USERNAME/dotfiles.git
+# 2. Initialize dotfiles — you'll be prompted for machine type, name, and emails
+~/.local/bin/chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
 
-# 3. Restart shell
+# 3. Restart your shell
 exec zsh
 ```
 
-### First Time Setup (macOS)
+### Fresh macOS Setup
 
 ```bash
-# 1. Bootstrap system
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/dotfiles/main/scripts/bootstrap-from-zero-mac.sh | bash
+# 1. Run the bootstrap script (installs Homebrew, git, chezmoi)
+curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-mac.sh | bash
 
-# 2. Initialize dotfiles
-chezmoi init --apply git@github.com:YOUR_USERNAME/dotfiles.git
+# 2. Initialize dotfiles — you'll be prompted for machine type, name, and emails
+chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
 
-# 3. Restart shell
+# 3. Restart your shell
 exec zsh
 ```
 
-## 📁 Structure
+During `chezmoi init` you will be prompted for:
+
+| Prompt | Example | Purpose |
+|--------|---------|---------|
+| Machine type | `work` or `personal` | Controls which tools are installed and which git email is default |
+| Your full name | `Anders Stroem` | Used in gitconfig |
+| Personal email | `anders@personal.com` | Default git email on personal machines |
+| Work email | `anders@company.com` | Default git email on work machines, or `~/work/` repos on personal machines |
+
+These values are saved in `~/.config/chezmoi/chezmoi.toml` and only prompted once. To re-prompt later: `chezmoi init --prompt`.
+
+## Repository Structure
 
 ```
 dotfiles/
-├── dot_zshrc                               # Main shell config
-├── dot_gitconfig                           # Git config (personal)
-├── dot_gitconfig-work                      # Git config (work - auto-loaded)
-├── dot_gitattributes                       # Git attributes
-├── dot_tmux.conf                           # tmux config
-├── dot_chezmoiignore                       # Files to not manage
-├── dot_chezmoi.toml.tmpl                   # Chezmoi settings
+├── .chezmoi.toml.tmpl                         # Chezmoi config template (prompts for machine type, emails)
+├── .chezmoiignore                             # Files excluded from home directory
+├── dot_zshrc.tmpl                             # Main shell config (templated)
+├── dot_gitconfig.tmpl                         # Git config (templated — adapts to work/personal)
+├── dot_gitconfig-work                         # Git includeIf config for ~/work/ repos
+├── dot_gitattributes                          # Git attributes
+├── dot_tmux.conf                              # tmux configuration
 ├── dot_config/
-│   ├── starship.toml                       # Prompt config
-│   ├── mise/config.toml                    # Runtime versions
-│   └── direnv/
-│       └── direnvrc                        # Shared direnv helpers
+│   ├── starship.toml                          # Starship prompt config
+│   ├── mise/config.toml                       # Runtime version management
+│   ├── direnv/direnvrc.tmpl                   # Shared direnv helpers (templated)
+│   └── windows-terminal/settings.json         # Windows Terminal settings
 ├── private_dot_ssh/
-│   └── config                              # SSH config (encrypted)
-├── run_once_install-core.sh.tmpl          # Core package install
-├── run_once_install-1password-cli.sh.tmpl # 1Password CLI install
-├── run_once_install-security.sh.tmpl      # Security tools install
+│   └── config                                 # SSH config
+├── run_onchange_install-core.sh.tmpl          # Core packages (apt/brew, kubectl, k9s, helm, etc.)
+├── run_onchange_install-security.sh.tmpl      # Security tools (gitleaks, trivy, checkov, pre-commit)
+├── run_onchange_install-1password-cli.sh.tmpl # 1Password CLI (personal machines only)
+├── run_onchange_install-work-tools.sh.tmpl    # Company-specific tools (work machines only)
+├── example-personal.envrc                     # Example .envrc with 1Password integration
+├── example-work.envrc                         # Example .envrc with file-based secrets
 └── scripts/
-    ├── bootstrap-from-zero-wsl.sh          # WSL bootstrap
-    └── bootstrap-from-zero-mac.sh          # macOS bootstrap
+    ├── bootstrap-from-zero-wsl.sh             # WSL bootstrap (curl, git, chezmoi)
+    ├── bootstrap-from-zero-mac.sh             # macOS bootstrap (Homebrew, git, chezmoi)
+    ├── download-nerd-font.sh                  # Nerd Font installer
+    └── install-windows-terminal-settings.sh   # Windows Terminal config installer
 ```
 
-## 🔧 Post-Install Configuration
+Key naming conventions:
+- `dot_` prefix → becomes a dotfile in `~/` (e.g., `dot_zshrc.tmpl` → `~/.zshrc`)
+- `.tmpl` suffix → processed as a Go template by chezmoi
+- `run_onchange_` prefix → re-runs whenever the script content changes
+- `private_dot_` prefix → applied with `0600` permissions
 
-### 1. Set Up GPG Signing
+## Post-Install Configuration
+
+### 1. GPG Commit Signing
 
 ```bash
-# Generate GPG key
-gpg --full-generate-key
-
-# List keys and get your key ID
-gpg --list-secret-keys --keyid-format=long
-
-# Configure git
+gpg --full-generate-key           # Generate key (RSA 4096, 2 year expiry)
+gpg --list-secret-keys --keyid-format=long   # Find your key ID
 git config --global user.signingkey YOUR_KEY_ID
-
-# Test signing
-echo "test" | gpg --clearsign
+echo "test" | gpg --clearsign     # Verify it works
 ```
 
-### 2. Configure 1Password CLI
+### 2. 1Password CLI (Personal Machines)
 
 ```bash
-# Sign in to 1Password
-op signin
-
-# Test it works
-op item list
-
-# Add secrets to 1Password vaults:
-# - Create "Work" vault for work secrets
-# - Create "Private" vault for personal secrets
+op signin                         # Sign in
+op item list                      # Verify access
 ```
 
-### 3. Set Up Work/Personal Git Switching
+### 3. Work/Personal Git Switching
+
+On **personal machines**, git email switches automatically:
+- Repos in `~/work/` use your work email (via `includeIf` in gitconfig)
+- All other repos use your personal email
 
 ```bash
-# Create work directory
 mkdir -p ~/work
-
-# Clone a work repo there
-cd ~/work
-git clone git@github.com:company/repo.git
-
-# Verify work email is used
-cd repo
-git config user.email  # Should show work email
-
-# Personal repos outside ~/work/ use personal email
-cd ~
-git config user.email  # Should show personal email
+cd ~/work && git clone git@github.com:company/repo.git
+cd repo && git config user.email   # → work email
+cd ~ && git config user.email      # → personal email
 ```
 
-### 4. Update Personal Information
+## Secrets Management
 
-Edit these files with your actual information:
-
-```bash
-# Edit git config
-chezmoi edit ~/.gitconfig
-# Update: name, email
-
-# Edit work git config
-chezmoi edit ~/.gitconfig-work
-# Update: email
-
-# Apply changes
-chezmoi apply
-```
-
-## 🔐 Secrets Management
-
-### Project .envrc Example (Customer Project)
+### Personal Machines (1Password)
 
 ```bash
-# .envrc in ~/work/customer-acme/
-
-# Set customer context (shows in prompt!)
+# Example .envrc in ~/work/customer-acme/
 export CUSTOMER_CONTEXT="acme-corp"
-
-# Load secrets from 1Password
 export ELASTIC_API_KEY=$(op read "op://Work/Elastic-ACME/api-key")
-export KIBANA_URL=$(op read "op://Work/Elastic-ACME/kibana-url")
-export ANSIBLE_VAULT_OP_ITEM="op://Work/Ansible-ACME/vault-password"
-
-# AWS profile for this customer
 export AWS_PROFILE="acme-prod"
-
-# K8s context for this customer
-kubectl config use-context "acme-prod" 2>/dev/null || true
 ```
 
-### Ansible Vault with 1Password
+### Work Machines (File/Command-Based)
 
 ```bash
-# Store vault password in 1Password
-# Then reference it in .envrc:
-export ANSIBLE_VAULT_OP_ITEM="op://Work/Ansible-Vault/password"
-
-# Use the helper function
-ap-op playbook.yml  # Automatically reads vault password from 1Password
+# Example .envrc
+export API_KEY=$(cat ~/.secrets/api-key)
+# Or: export API_KEY=$(company-secrets get api-key)
 ```
 
-## 📝 Daily Workflow
-
-### Making Changes
+## Daily Workflow
 
 ```bash
-# Edit a config
-chezmoi edit ~/.zshrc
+chezmoi edit ~/.zshrc              # Edit a managed config
+chezmoi diff                       # Preview changes
+chezmoi apply                      # Apply to home directory
+chezmoi update                     # Pull from git + apply (on another machine)
 
-# See what would change
-chezmoi diff
-
-# Apply changes
-chezmoi apply
-
-# Commit and push
-chezmoi cd
-git add .
-git commit -m "Add new alias"
-git push
+# Commit changes back
+chezmoi cd                         # cd into source directory
+git add . && git commit -m "Update aliases" && git push
 exit
 ```
 
-### Pulling Updates on Another Machine
+## Shell Aliases
+
+### Git
+| Alias | Command |
+|-------|---------|
+| `gs` | `git status` |
+| `ga` | `git add` |
+| `gc` | `git commit` |
+| `gcb` | fuzzy branch checkout |
+
+### Kubernetes
+| Alias | Command |
+|-------|---------|
+| `k` | `kubectl` |
+| `kx` | `kubectx` (switch context) |
+| `kn` | `kubens` (switch namespace) |
+| `kwhere` | Show current context/namespace |
+
+### Ansible
+| Alias | Command |
+|-------|---------|
+| `ap` | `ansible-playbook --diff` |
+| `ave` | `ansible-vault edit` |
+| `avv` | `ansible-vault view` |
+| `ap-op` | ansible-playbook with 1Password vault password |
+
+### Docker
+| Alias | Command |
+|-------|---------|
+| `d` | `docker` |
+| `dc` | `docker compose` |
+| `dcu` | `docker compose up` |
+| `dcd` | `docker compose down` |
+
+### Security
+| Alias | Command |
+|-------|---------|
+| `scan-secrets` | `gitleaks detect` |
+| `scan-ansible` | `checkov` scan |
+| `safety-check` | Run all security scans |
+
+## Troubleshooting
+
+### chezmoi prompts not appearing
+
+`promptStringOnce` only runs during `chezmoi init`, not `chezmoi apply`. To re-trigger prompts:
 
 ```bash
-# One command to pull and apply
-chezmoi update
+chezmoi init --prompt --apply
 ```
 
-### Adding New Files
+### WSL2 DNS issues
 
 ```bash
-# Add a new config to be managed
-chezmoi add ~/.config/nvim/init.vim
-
-# It's now tracked and will sync across machines
-```
-
-## 🛠️ Useful Commands
-
-### Shell Aliases
-
-```bash
-# Git
-gs          # git status
-ga          # git add
-gc          # git commit
-gcb         # fuzzy checkout branch
-
-# Ansible
-ap          # ansible-playbook --diff
-ave <file>  # ansible-vault edit
-avv <file>  # ansible-vault view
-ap-op       # ansible-playbook with 1Password vault password
-
-# Kubernetes
-k           # kubectl
-kx          # kubectx (switch context)
-kn          # kubens (switch namespace)
-kwhere      # show current context/namespace
-
-# Docker
-d           # docker
-dc          # docker compose
-dcu         # docker compose up
-dcd         # docker compose down
-
-# Security
-scan-secrets    # gitleaks scan
-scan-ansible    # checkov scan for Ansible
-safety-check    # run all security scans
-
-# Customer context
-set-customer <name>   # Set customer context (shows in prompt)
-unset-customer        # Clear customer context
-show-customer         # Show current customer
-```
-
-### Chezmoi Commands
-
-```bash
-chezmoi init                # Initialize chezmoi
-chezmoi add <file>          # Add file to be managed
-chezmoi edit <file>         # Edit managed file
-chezmoi apply               # Apply all changes
-chezmoi diff                # Show what would change
-chezmoi update              # Pull from git and apply
-chezmoi cd                  # Go to source directory
-chezmoi managed             # List managed files
-```
-
-## 🔒 Security Best Practices
-
-### Pre-Commit Checks
-
-Set up pre-commit hooks in your repositories:
-
-```bash
-# In your repo
-cat > .pre-commit-config.yaml << 'EOF'
-repos:
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.2
-    hooks:
-      - id: gitleaks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: check-added-large-files
-      - id: check-merge-conflict
-      - id: trailing-whitespace
-EOF
-
-# Install hooks
-pre-commit install
-```
-
-### Never Commit These
-
-❌ **NEVER commit:**
-- SSH private keys
-- API tokens/passwords
-- Customer credentials
-- `.envrc` files with real secrets
-- Ansible vault passwords
-
-✅ **Instead:**
-- Store secrets in 1Password
-- Reference them via `op read` in `.envrc`
-- Use git-crypt for SSH keys if needed
-- Keep `.envrc` in `.chezmoiignore`
-
-## 🆘 Troubleshooting
-
-### WSL2 DNS Issues
-
-```bash
-# If experiencing DNS problems
 sudo rm /etc/resolv.conf
 echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
 ```
 
-### Shell Not Changing to zsh
+### Shell not changing to zsh
 
 ```bash
-# Manually change shell
 chsh -s $(which zsh)
-# Then restart terminal
+# Restart terminal
 ```
 
-### 1Password CLI Not Working
+### Force re-run of install scripts
+
+Since scripts use `run_onchange_`, they re-run automatically when you edit them. To force a full re-run:
 
 ```bash
-# Sign in again
-op signin
-
-# Check status
-op account list
-```
-
-### Chezmoi Changes Not Applying
-
-```bash
-# Force rerun of scripts
 rm ~/.config/chezmoi/chezmoistate.boltdb
 chezmoi apply
-
-# Or manually run scripts
-bash ~/.local/share/chezmoi/run_once_install-core.sh.tmpl
 ```
 
-## 📚 Learn More
+## Learn More
 
-- [Chezmoi Documentation](https://www.chezmoi.io/)
-- [Starship Prompt](https://starship.rs/)
+- [chezmoi documentation](https://www.chezmoi.io/)
+- [Starship prompt](https://starship.rs/)
 - [1Password CLI](https://developer.1password.com/docs/cli/)
 - [direnv](https://direnv.net/)
 - [mise](https://mise.jdx.dev/)
-
-## 🤝 Contributing
-
-Feel free to fork and customize for your own use!
-
-## 📄 License
-
-MIT License - use freely!
