@@ -1,0 +1,146 @@
+# ============================================================
+# direnv - shared helpers
+# Machine type: {{ if .isWork }}WORK{{ else }}PERSONAL{{ end }}
+# ============================================================
+
+# ----------------------------
+# Python project with uv
+# ----------------------------
+layout_uv() {
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "uv not found. Install uv for layout_uv." >&2
+    return 1
+  fi
+  
+  if [ ! -d ".venv" ]; then
+    echo "Creating virtual environment with uv..."
+    uv venv
+  fi
+  
+  # Activate the virtual environment
+  source .venv/bin/activate
+  
+  # Install dependencies if requirements.txt exists
+  if [ -f "requirements.txt" ]; then
+    echo "Installing dependencies..."
+    uv pip install -r requirements.txt
+  fi
+}
+
+# ----------------------------
+# Ansible project layout
+# ----------------------------
+layout_ansible() {
+  # Use Python from mise
+  layout python
+  
+  # Install Ansible in venv if missing
+  if ! command -v ansible >/dev/null 2>&1; then
+    echo "Installing Ansible..."
+    pip install ansible ansible-lint
+  fi
+  
+{{- if .isPersonal }}
+  # Personal: Set vault password from 1Password if available
+  if command -v op >/dev/null 2>&1 && [ -n "${ANSIBLE_VAULT_OP_ITEM:-}" ]; then
+    export ANSIBLE_VAULT_PASSWORD_FILE=<(op read "$ANSIBLE_VAULT_OP_ITEM")
+  fi
+{{- else }}
+  # Work: Use vault file if specified
+  if [ -n "${ANSIBLE_VAULT_FILE:-}" ] && [ -f "${ANSIBLE_VAULT_FILE}" ]; then
+    export ANSIBLE_VAULT_PASSWORD_FILE="${ANSIBLE_VAULT_FILE}"
+  fi
+{{- end }}
+  
+  # Common Ansible env vars
+  export ANSIBLE_FORCE_COLOR=true
+  export ANSIBLE_HOST_KEY_CHECKING=False
+  export ANSIBLE_STDOUT_CALLBACK=yaml
+  export ANSIBLE_RETRY_FILES_ENABLED=False
+}
+
+# ----------------------------
+# Node.js project
+# ----------------------------
+layout_node() {
+  if [ -f "package.json" ]; then
+    PATH_add node_modules/.bin
+  fi
+}
+
+{{- if .isPersonal }}
+# ----------------------------
+# Load secrets from 1Password (PERSONAL ONLY)
+# ----------------------------
+op_load() {
+  local op_reference="${1:?usage: op_load <op-reference> <env-var-name>}"
+  local env_var_name="${2:?usage: op_load <op-reference> <env-var-name>}"
+  
+  if command -v op >/dev/null 2>&1; then
+    local value
+    value=$(op read "$op_reference" 2>/dev/null)
+    if [ $? -eq 0 ]; then
+      export "$env_var_name=$value"
+    else
+      echo "Warning: Failed to load $env_var_name from 1Password" >&2
+    fi
+  else
+    echo "Warning: 1Password CLI (op) not found" >&2
+  fi
+}
+{{- else }}
+# ----------------------------
+# Load secrets from file (WORK)
+# ----------------------------
+# Usage: secret_file_load "/path/to/secret" "ENV_VAR_NAME"
+secret_file_load() {
+  local secret_file="${1:?usage: secret_file_load <file-path> <env-var-name>}"
+  local env_var_name="${2:?usage: secret_file_load <file-path> <env-var-name>}"
+  
+  if [ -f "$secret_file" ]; then
+    local value
+    value=$(cat "$secret_file")
+    export "$env_var_name=$value"
+  else
+    echo "Warning: Secret file not found: $secret_file" >&2
+  fi
+}
+
+# Usage: secret_cmd_load "command to run" "ENV_VAR_NAME"
+secret_cmd_load() {
+  local cmd="${1:?usage: secret_cmd_load <command> <env-var-name>}"
+  local env_var_name="${2:?usage: secret_cmd_load <command> <env-var-name>}"
+  
+  local value
+  value=$(eval "$cmd" 2>/dev/null)
+  if [ $? -eq 0 ] && [ -n "$value" ]; then
+    export "$env_var_name=$value"
+  else
+    echo "Warning: Failed to load $env_var_name from command" >&2
+  fi
+}
+{{- end }}
+
+# ----------------------------
+# AWS profile helper
+# ----------------------------
+use_aws() {
+  local profile="${1:?usage: use_aws <profile-name>}"
+  export AWS_PROFILE="$profile"
+  echo "AWS profile set to: $profile"
+}
+
+# ----------------------------
+# Kubernetes context helper
+# ----------------------------
+use_kube() {
+  local context="${1:?usage: use_kube <context-name>}"
+  if command -v kubectl >/dev/null 2>&1; then
+    kubectl config use-context "$context" 2>/dev/null
+    if [ $? -eq 0 ]; then
+      echo "Kubernetes context set to: $context"
+    else
+      echo "Warning: Failed to set Kubernetes context to $context" >&2
+    fi
+  fi
+}

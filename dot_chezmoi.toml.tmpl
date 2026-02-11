@@ -1,0 +1,45 @@
+# ============================================================
+# Chezmoi configuration - detects work vs personal machine
+# ============================================================
+
+{{- $isWork := false -}}
+{{- $isPersonal := false -}}
+
+{{- /* Detect machine type based on hostname */ -}}
+{{- if or (contains "work" .chezmoi.hostname) (contains "company" .chezmoi.hostname) -}}
+{{-   $isWork = true -}}
+{{- else if or (contains "home" .chezmoi.hostname) (contains "personal" .chezmoi.hostname) -}}
+{{-   $isPersonal = true -}}
+{{- else -}}
+{{-   /* Prompt user on first run */ -}}
+{{-   $machineType := promptString "Machine type (work/personal)" -}}
+{{-   if eq $machineType "work" -}}
+{{-     $isWork = true -}}
+{{-   else -}}
+{{-     $isPersonal = true -}}
+{{-   end -}}
+{{- end -}}
+
+[data]
+    isWork = {{ $isWork }}
+    isPersonal = {{ $isPersonal }}
+    
+    {{- if $isWork }}
+    email = "work@example.com"
+    name = "Anders Strøm"
+    {{- else }}
+    email = "33464978+A-Stroem@users.noreply.github.com"
+    name = "Anders Strøm"
+    {{- end }}
+
+[git]
+    autoCommit = false
+    autoPush = false
+
+[diff]
+    command = "code"
+    args = ["--wait", "--diff"]
+
+[merge]
+    command = "code"
+    args = ["--wait", "--merge", "{{ .Destination }}", "{{ .Source }}", "{{ .Target }}"]

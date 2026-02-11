@@ -1,0 +1,83 @@
+# ============================================================
+# SSH baseline - safe defaults
+# ============================================================
+
+# Global defaults for all hosts
+Host *
+  # Add keys to SSH agent automatically
+  AddKeysToAgent yes
+  
+  # Keep connections alive
+  ServerAliveInterval 60
+  ServerAliveCountMax 30
+  
+  # Only use explicitly specified identity files
+  IdentitiesOnly yes
+  
+  # Default identity file (ed25519 recommended for security)
+  IdentityFile ~/.ssh/id_ed25519
+  
+  # Enable connection multiplexing for faster subsequent connections
+  ControlMaster auto
+  ControlPath ~/.ssh/sockets/%r@%h-%p
+  ControlPersist 600
+  
+  # Use stronger ciphers
+  Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+  
+  # Use stronger MACs
+  MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+  
+  # Use stronger key exchange algorithms
+  KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+  
+  # Disable host key checking for localhost (useful for testing)
+  # Remove this if you want strict security
+  # NoHostAuthenticationForLocalhost yes
+
+# Example: GitHub
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+
+# Example: GitLab
+Host gitlab.com
+  HostName gitlab.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+
+# Example host patterns for work servers
+# Uncomment and customize as needed
+
+# Host prod-*
+#   User ubuntu
+#   IdentityFile ~/.ssh/id_ed25519_work
+#   ForwardAgent no
+#   # Extra security for production
+#   StrictHostKeyChecking yes
+
+# Host staging-*
+#   User ubuntu
+#   IdentityFile ~/.ssh/id_ed25519_work
+#   ForwardAgent no
+
+# Host dev-*
+#   User ubuntu
+#   IdentityFile ~/.ssh/id_ed25519_work
+#   ForwardAgent yes
+
+# Example: Bastion/jump host pattern
+# Host bastion
+#   HostName bastion.company.com
+#   User your-username
+#   IdentityFile ~/.ssh/id_ed25519_work
+#   ForwardAgent no
+
+# Host internal-*
+#   ProxyJump bastion
+#   User ubuntu
+#   IdentityFile ~/.ssh/id_ed25519_work
+
+# Create control sockets directory if it doesn't exist
+# Run: mkdir -p ~/.ssh/sockets
