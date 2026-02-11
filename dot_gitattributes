@@ -1,0 +1,38 @@
+# ============================================================
+# Git attributes for special file handling
+# ============================================================
+
+# Ansible vault files - prevent accidental plain-text diffs
+*.vault.yml diff=ansible-vault merge=binary
+*.vault.yaml diff=ansible-vault merge=binary
+*vault*.yml diff=ansible-vault merge=binary
+*vault*.yaml diff=ansible-vault merge=binary
+
+# Treat all .env files as binary to prevent accidental commits
+.env* binary
+.envrc binary
+
+# Normalize line endings
+* text=auto
+
+# Shell scripts should always use LF
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# Python files
+*.py text eol=lf
+
+# YAML/JSON
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+
+# Markdown
+*.md text eol=lf
+
+# Git config files
+.gitconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf

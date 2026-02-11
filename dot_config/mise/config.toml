@@ -1,0 +1,19 @@
+# ============================================================
+# mise - global tool versions (same on mac + WSL)
+# ============================================================
+
+[tools]
+# Node.js - use LTS
+node = "lts"
+
+# Python - current stable
+python = "3.12"
+
+# Add more tools as needed:
+# terraform = "latest"
+# kubectl = "latest"
+# helm = "latest"
+
+[settings]
+# Enable automatic activation in project directories
+experimental = true

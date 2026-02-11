@@ -1,0 +1,68 @@
+{{- if .isWork -}}
+#!/usr/bin/env bash
+# ============================================================
+# Work-specific tools installation (WORK MACHINES ONLY)
+# ============================================================
+
+set -euo pipefail
+
+echo "🏢 Installing work-specific tools..."
+
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+
+# ----------------------------
+# Company-specific tools
+# ----------------------------
+# Add your company's required tools here
+
+# Example: VPN client
+# if ! command -v company-vpn >/dev/null 2>&1; then
+#   echo "📦 Installing company VPN client..."
+#   # Install VPN client
+# fi
+
+# Example: Company-specific CLI tools
+# if ! command -v company-cli >/dev/null 2>&1; then
+#   echo "📦 Installing company CLI..."
+#   # Install company CLI
+# fi
+
+# Example: Container registry login helpers
+# if ! command -v docker-credential-company >/dev/null 2>&1; then
+#   echo "📦 Installing Docker credential helper..."
+#   # Install credential helper
+# fi
+
+# ----------------------------
+# Work-specific AWS setup
+# ----------------------------
+# Example: Install AWS SSO helper
+# if ! command -v aws-sso-util >/dev/null 2>&1; then
+#   echo "📦 Installing AWS SSO utilities..."
+#   pipx install aws-sso-util || true
+# fi
+
+# ----------------------------
+# Work-specific security tools
+# ----------------------------
+# Some companies provide their own security scanning tools
+# Example:
+# if ! command -v company-security-scanner >/dev/null 2>&1; then
+#   echo "📦 Installing company security scanner..."
+#   # Install company scanner
+# fi
+
+echo "✅ Work-specific tools installation complete"
+echo ""
+echo "📝 Additional work setup:"
+echo "  - Configure company VPN"
+echo "  - Set up company SSO"
+echo "  - Configure company git server access"
+echo "  - Install company security certificates"
+{{- else -}}
+#!/usr/bin/env bash
+# Skipping work-specific tools on personal machine
+echo "⏭️  Skipping work-specific tools (personal machine)"
+exit 0
+{{- end -}}

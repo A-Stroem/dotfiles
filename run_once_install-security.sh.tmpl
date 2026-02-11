@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# ============================================================
+# Security tools installation (gitleaks, trivy, checkov)
+# ============================================================
+
+set -euo pipefail
+
+echo "🔒 Installing security scanning tools..."
+
+# Helper functions
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+
+# ----------------------------
+# Install gitleaks (secret scanning)
+# ----------------------------
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "📦 Installing gitleaks..."
+  
+  if is_darwin; then
+    brew install gitleaks
+  elif is_linux; then
+    GITLEAKS_VERSION="8.18.2"
+    wget -qO- "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+      | tar xvz -C /tmp
+    sudo mv /tmp/gitleaks /usr/local/bin/
+    sudo chmod +x /usr/local/bin/gitleaks
+  fi
+  
+  echo "✅ gitleaks installed"
+else
+  echo "✅ gitleaks already installed"
+fi
+
+# ----------------------------
+# Install trivy (vulnerability/IaC scanning)
+# ----------------------------
+if ! command -v trivy >/dev/null 2>&1; then
+  echo "📦 Installing trivy..."
+  
+  if is_darwin; then
+    brew install trivy
+  elif is_linux; then
+    # Install from official repository
+    sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+    sudo apt-get update
+    sudo apt-get install -y trivy
+  fi
+  
+  echo "✅ trivy installed"
+else
+  echo "✅ trivy already installed"
+fi
+
+# ----------------------------
+# Install checkov (IaC security scanning)
+# ----------------------------
+if ! command -v checkov >/dev/null 2>&1; then
+  echo "📦 Installing checkov..."
+  
+  if command -v pipx >/dev/null 2>&1; then
+    pipx install checkov
+  elif command -v pip3 >/dev/null 2>&1; then
+    pip3 install --user checkov
+  else
+    echo "⚠️  pipx/pip3 not found, skipping checkov installation"
+  fi
+  
+  echo "✅ checkov installed"
+else
+  echo "✅ checkov already installed"
+fi
+
+# ----------------------------
+# Install pre-commit framework
+# ----------------------------
+if ! command -v pre-commit >/dev/null 2>&1; then
+  echo "📦 Installing pre-commit..."
+  
+  if command -v pipx >/dev/null 2>&1; then
+    pipx install pre-commit
+  elif command -v pip3 >/dev/null 2>&1; then
+    pip3 install --user pre-commit
+  else
+    echo "⚠️  pipx/pip3 not found, skipping pre-commit installation"
+  fi
+  
+  echo "✅ pre-commit installed"
+else
+  echo "✅ pre-commit already installed"
+fi
+
+# ----------------------------
+# Install git-secrets (prevent committing secrets)
+# ----------------------------
+if ! command -v git-secrets >/dev/null 2>&1; then
+  echo "📦 Installing git-secrets..."
+  
+  if is_darwin; then
+    brew install git-secrets
+  elif is_linux; then
+    # Clone and install
+    if [ ! -d "/tmp/git-secrets" ]; then
+      git clone https://github.com/awslabs/git-secrets.git /tmp/git-secrets
+    fi
+    cd /tmp/git-secrets
+    sudo make install
+    cd -
+    rm -rf /tmp/git-secrets
+  fi
+  
+  echo "✅ git-secrets installed"
+else
+  echo "✅ git-secrets already installed"
+fi
+
+# ----------------------------
+# Create gitleaks config
+# ----------------------------
+mkdir -p "$HOME/.config/gitleaks"
+if [ ! -f "$HOME/.config/gitleaks/gitleaks.toml" ]; then
+  cat > "$HOME/.config/gitleaks/gitleaks.toml" << 'EOF'
+title = "Gitleaks config for MSSP work"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "customer-api-keys"
+description = "Customer API keys"
+regex = '''(?i)(api[_-]?key|apikey|api[_-]?secret|customer[_-]?token)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9]{20,}'''
+
+[[rules]]
+id = "ansible-vault-password"
+description = "Ansible vault passwords"
+regex = '''(?i)(vault[_-]?pass|vault[_-]?password|ansible[_-]?vault)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9]{10,}'''
+
+[[rules]]
+id = "1password-references"
+description = "1Password secret references (should use op read)"
+regex = '''op://[A-Za-z0-9-]+/[A-Za-z0-9-]+/[A-Za-z0-9-]+'''
+[rules.allowlist]
+description = "Allow in direnvrc and documentation"
+paths = [
+  '''\.direnvrc$''',
+  '''direnvrc$''',
+  '''README\.md$''',
+  '''\.md$'''
+]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----'''
+EOF
+  echo "✅ Created gitleaks configuration"
+fi
+
+# ----------------------------
+# Install global git hooks (optional)
+# ----------------------------
+echo ""
+echo "📝 Security tools installed successfully!"
+echo ""
+echo "⚠️  IMPORTANT: Set up git hooks in your repositories:"
+echo "  1. cd <your-repo>"
+echo "  2. Create .pre-commit-config.yaml with:"
+echo ""
+cat << 'EOF'
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: trailing-whitespace
+EOF
+echo ""
+echo "  3. Run: pre-commit install"
+echo ""
+echo "🔐 Test your security setup with:"
+echo "  gitleaks detect --no-git"
+echo "  trivy fs ."
+echo "  checkov -d ."

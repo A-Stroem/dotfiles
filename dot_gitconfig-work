@@ -1,0 +1,7 @@
+# ============================================================
+# Work identity (auto-activated for repos under ~/work/)
+# ============================================================
+
+[user]
+  email = anstr@tdc.nuuway.dk
+  # Update with your work email after setup

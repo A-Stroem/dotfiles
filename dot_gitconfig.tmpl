@@ -1,0 +1,90 @@
+# ============================================================
+# Global git config - templated for work/personal machines
+# ============================================================
+
+[user]
+  name = {{ .name }}
+  email = {{ .email }}
+  # Update this after GPG key setup:
+  # git config --global user.signingkey YOUR_GPG_KEY_ID
+
+[init]
+  defaultBranch = main
+
+[core]
+  editor = code --wait
+  autocrlf = input
+  whitespace = space-before-tab,-indent-with-non-tab,trailing-space
+  attributesfile = ~/.gitattributes
+
+[commit]
+  gpgsign = false
+  verbose = true
+
+[tag]
+  gpgsign = true
+
+[gpg]
+  program = gpg
+
+[pull]
+  rebase = true
+
+[rebase]
+  autoStash = true
+  autoSquash = true
+
+[push]
+  default = simple
+  autoSetupRemote = true
+  gpgSign = if-asked
+
+[fetch]
+  prune = true
+  pruneTags = true
+
+[branch]
+  sort = -committerdate
+
+[diff]
+  colorMoved = default
+  algorithm = histogram
+  submodule = log
+
+[merge]
+  conflictstyle = zdiff3
+  tool = code
+
+[rerere]
+  enabled = true
+
+[status]
+  submoduleSummary = true
+
+[log]
+  showSignature = true
+
+[alias]
+  amend = commit --amend --no-edit
+  undo = reset --soft HEAD^
+  recent = branch --sort=-committerdate
+  s = status -sb
+  lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  show-commit = show --stat --oneline
+  find-commit = log --all --grep
+  contributors = shortlog --summary --numbered --email
+
+[url "git@github.com:"]
+  insteadOf = https://github.com/
+
+{{- if .isPersonal }}
+# Personal machine - use includeIf for work repos
+[includeIf "gitdir:~/work/"]
+  path = ~/.gitconfig-work
+{{- end }}
+
+[branch "main"]
+  pushRemote = origin
+
+[branch "master"]
+  pushRemote = origin

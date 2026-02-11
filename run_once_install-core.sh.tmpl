@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+# ============================================================
+# Core package installation (macOS + WSL Ubuntu)
+# ============================================================
+
+set -euo pipefail
+
+# Helper functions
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+
+echo "🚀 Installing core packages..."
+
+# ----------------------------
+# macOS installation
+# ----------------------------
+if is_darwin; then
+  echo "📦 Detected macOS - using Homebrew"
+  
+  # Install Homebrew if missing
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Add Homebrew to PATH for Apple Silicon
+    if [[ "$(uname -m)" == "arm64" ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+  fi
+  
+  # Update Homebrew
+  brew update
+  
+  # Install core packages
+  brew install \
+    git \
+    zsh \
+    starship \
+    mise \
+    zoxide \
+    fzf \
+    ripgrep \
+    fd \
+    bat \
+    eza \
+    jq \
+    yq \
+    direnv \
+    tmux \
+    uv \
+    pipx \
+    curl \
+    wget \
+    tree \
+    htop
+  
+  # Install fzf keybindings (non-interactive)
+  if [[ -x "$(brew --prefix)/opt/fzf/install" ]]; then
+    "$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc || true
+  fi
+  
+  # Kubernetes tools
+  echo "📦 Installing Kubernetes tools..."
+  brew install \
+    kubectl \
+    kubectx \
+    helm \
+    k9s
+  
+  echo "✅ macOS core packages installed"
+
+# ----------------------------
+# Linux (Ubuntu/Debian) installation
+# ----------------------------
+elif is_linux; then
+  echo "📦 Detected Linux - using apt"
+  
+  # Update package list
+  sudo apt update
+  
+  # Install core packages available via apt
+  sudo apt install -y \
+    git \
+    zsh \
+    fzf \
+    ripgrep \
+    fd-find \
+    jq \
+    direnv \
+    tmux \
+    pipx \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    tree \
+    htop \
+    unzip \
+    vim
+  
+  # Install Starship (not in Ubuntu repos)
+  if ! command -v starship >/dev/null 2>&1; then
+    echo "📦 Installing Starship..."
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
+  fi
+  
+  # Install mise (not in Ubuntu repos)
+  if ! command -v mise >/dev/null 2>&1; then
+    echo "📦 Installing mise..."
+    curl https://mise.run | sh
+    # Add to PATH for this session
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  
+  # Install uv (not in Ubuntu repos)
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "📦 Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  
+  # Install modern tools if available (Ubuntu 22.04+)
+  echo "📦 Installing modern CLI tools (if available)..."
+  sudo apt install -y zoxide bat eza 2>/dev/null || {
+    echo "⚠️  Some modern tools not available via apt (zoxide, bat, eza)"
+    echo "   These will work on Ubuntu 24.04+ or install manually"
+  }
+  
+  # Install kubectl
+  if ! command -v kubectl >/dev/null 2>&1; then
+    echo "📦 Installing kubectl..."
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    rm kubectl
+  fi
+  
+  # Install kubectx/kubens
+  if ! command -v kubectx >/dev/null 2>&1; then
+    echo "📦 Installing kubectx/kubens..."
+    sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx 2>/dev/null || \
+      (cd /opt/kubectx && sudo git pull)
+    sudo ln -sf /opt/kubectx/kubectx /usr/local/bin/kubectx
+    sudo ln -sf /opt/kubectx/kubens /usr/local/bin/kubens
+  fi
+  
+  # Install helm
+  if ! command -v helm >/dev/null 2>&1; then
+    echo "📦 Installing helm..."
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  fi
+  
+  # Install k9s
+  if ! command -v k9s >/dev/null 2>&1; then
+    echo "📦 Installing k9s..."
+    K9S_VERSION="v0.32.4"
+    wget -qO- "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar xvz -C /tmp
+    sudo mv /tmp/k9s /usr/local/bin/
+  fi
+  
+  echo "✅ Linux core packages installed"
+
+else
+  echo "❌ Unsupported OS: $(uname -s)"
+  exit 1
+fi
+
+# ----------------------------
+# Common post-install (both platforms)
+# ----------------------------
+
+# Ensure pipx path is available
+if command -v pipx >/dev/null 2>&1; then
+  pipx ensurepath || true
+fi
+
+# Install Ansible + ansible-lint via pipx (isolated from system Python)
+if command -v pipx >/dev/null 2>&1; then
+  echo "📦 Installing Ansible via pipx..."
+  pipx install --include-deps ansible || pipx upgrade ansible
+  pipx install ansible-lint || pipx upgrade ansible-lint
+fi
+
+# Create SSH sockets directory for connection multiplexing
+mkdir -p "$HOME/.ssh/sockets"
+
+# Set zsh as default shell if not already
+if command -v zsh >/dev/null 2>&1; then
+  if [[ "${SHELL:-}" != "$(command -v zsh)" ]]; then
+    echo "🐚 Setting zsh as default shell..."
+    if is_darwin; then
+      chsh -s "$(command -v zsh)" || true
+    else
+      # On Linux, may need sudo
+      sudo chsh -s "$(command -v zsh)" "$USER" || true
+    fi
+  fi
+fi
+
+echo ""
+echo "✅ Core installation complete!"
+echo ""
+echo "📝 Next steps:"
+echo "  1. Restart your shell or run: exec zsh"
+echo "  2. Set up GPG key for commit signing: gpg --full-generate-key"
+echo "  3. Configure git signing key: git config --global user.signingkey YOUR_KEY_ID"
+echo "  4. Install 1Password CLI (run_once_install-1password-cli.sh)"
+echo "  5. Install security tools (run_once_install-security.sh)"
