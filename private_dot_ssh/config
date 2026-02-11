@@ -6,6 +6,10 @@
 Host *
   # Add keys to SSH agent automatically
   AddKeysToAgent yes
+
+  # macOS Keychain integration (ignored on Linux)
+  IgnoreUnknown UseKeychain
+  UseKeychain yes
   
   # Keep connections alive
   ServerAliveInterval 60
