@@ -1,0 +1,80 @@
+{
+  "$help": "https://aka.ms/terminal-documentation",
+  "$schema": "https://aka.ms/terminal-profiles-schema",
+
+  "defaultProfile": "{2c4de342-38b7-51cf-b940-2309a097f518}",
+
+  "copyOnSelect": false,
+  "copyFormatting": false,
+  "trimBlockSelection": true,
+  "launchMode": "default",
+  "windowingBehavior": "useExisting",
+  "tabWidthMode": "equal",
+  "showTabsInTitlebar": true,
+  "useAcrylicInTabRow": false,
+  "alwaysShowNotificationIcon": true,
+
+  "profiles": {
+    "defaults": {
+      "font": {
+        "face": "FiraCode Nerd Font"
+      },
+      "colorScheme": "Dracula",
+      "cursorShape": "bar",
+      "padding": "8, 8, 8, 8",
+      "useAcrylic": false
+    },
+
+    "list": [
+      {
+        "guid": "{2c4de342-38b7-51cf-b940-2309a097f518}",
+        "name": "Ubuntu (WSL)",
+        "source": "Windows.Terminal.Wsl",
+        "startingDirectory": "~"
+      },
+      {
+        "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+        "name": "PowerShell",
+        "commandline": "pwsh.exe",
+        "hidden": false
+      }
+    ]
+  },
+
+  "schemes": [
+    {
+      "name": "Dracula",
+      "background": "#1E1F29",
+      "foreground": "#F8F8F2",
+      "selectionBackground": "#44475A",
+      "cursorColor": "#F8F8F2",
+
+      "black": "#21222C",
+      "red": "#FF5555",
+      "green": "#50FA7B",
+      "yellow": "#F1FA8C",
+      "blue": "#BD93F9",
+      "purple": "#FF79C6",
+      "cyan": "#8BE9FD",
+      "white": "#F8F8F2",
+
+      "brightBlack": "#6272A4",
+      "brightRed": "#FF6E6E",
+      "brightGreen": "#69FF94",
+      "brightYellow": "#FFFFA5",
+      "brightBlue": "#D6ACFF",
+      "brightPurple": "#FF92DF",
+      "brightCyan": "#A4FFFF",
+      "brightWhite": "#FFFFFF"
+    }
+  ],
+
+  "actions": [
+    { "command": { "action": "copy" }, "keys": "ctrl+shift+c" },
+    { "command": { "action": "paste" }, "keys": "ctrl+shift+v" },
+    { "command": { "action": "find" }, "keys": "ctrl+shift+f" },
+    { "command": { "action": "newTab" }, "keys": "ctrl+shift+t" },
+    { "command": { "action": "closeTab" }, "keys": "ctrl+shift+w" }
+  ]
+}
+
