@@ -6,52 +6,124 @@ Step-by-step instructions for setting up a fresh machine. Works on both WSL2 Ubu
 
 ## Prerequisites: SSH Key for GitHub
 
-A fresh WSL instance or new Mac won't have an SSH key. You need one before you can clone the dotfiles repo. These steps are the same on both WSL and macOS.
+A fresh WSL instance or new Mac won't have an SSH key. You need one before you can clone the dotfiles repo.
 
-### Generate a new SSH key
+Pick **one** of the two options below:
+
+- **Option A** — Generate a local key (simple, but lost when WSL is reset)
+- **Option B** — Use 1Password SSH agent (key persists across reinstalls)
+
+### Option A: Local SSH Key (simple)
 
 ```bash
-# Generate an Ed25519 key (recommended)
+# Generate an Ed25519 key
 ssh-keygen -t ed25519 -C "33464978+A-Stroem@users.noreply.github.com"
 
 # When prompted:
 #   File → press Enter to accept default (~/.ssh/id_ed25519)
-#   Passphrase → enter a strong passphrase (or leave empty for convenience)
-```
+#   Passphrase → enter a strong passphrase (or leave empty)
 
-### Start the SSH agent and add the key
-
-```bash
+# Start the SSH agent and add the key
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_ed25519
+
+# Copy the public key
+cat ~/.ssh/id_ed25519.pub          # WSL / Linux
+# pbcopy < ~/.ssh/id_ed25519.pub   # macOS (copies to clipboard)
 ```
 
-### Copy the public key
-
-```bash
-# WSL / Linux
-cat ~/.ssh/id_ed25519.pub
-
-# macOS (copies to clipboard)
-pbcopy < ~/.ssh/id_ed25519.pub
-```
-
-### Add it to GitHub
+Then add the public key to GitHub:
 
 1. Go to [github.com/settings/keys](https://github.com/settings/keys)
 2. Click **New SSH key**
-3. Title: something like `WSL Ubuntu 2025` or `MacBook Pro`
+3. Title: something like `WSL Ubuntu 2026` or `MacBook Pro`
 4. Paste the public key
 5. Click **Add SSH key**
 
-### Verify it works
+### Option B: 1Password SSH Agent (recommended — survives WSL resets)
+
+With 1Password managing your SSH key, you never lose it when resetting WSL or setting up a new machine. 1Password stores the private key in your vault and acts as the SSH agent.
+
+#### Step 1: Generate an SSH key in 1Password
+
+1. Open the **1Password desktop app** (Windows or macOS)
+2. Select your vault (Personal or Private)
+3. Click **New Item** > **SSH Key**
+4. Click **Add Private Key** > **Generate New Key**
+5. Choose **Ed25519**, click **Generate**, then **Save**
+6. Copy the **public key** from the item and add it to [github.com/settings/keys](https://github.com/settings/keys)
+
+#### Step 2: Enable the 1Password SSH agent
+
+1. Open **1Password** > **Settings** > **Developer**
+2. Check **Use the SSH agent**
+3. Under **Settings** > **General**, enable **Keep 1Password in the notification area** and **Start at login** (so the agent stays running)
+
+#### Step 3a: Configure WSL2 to use the 1Password agent
+
+The 1Password SSH agent runs on the Windows side. WSL2 needs `npiperelay` and `socat` to bridge to it.
 
 ```bash
+# Install socat
+sudo apt install -y socat
+```
+
+Download [npiperelay](https://github.com/jstarks/npiperelay/releases) (the `.exe`), place it somewhere on your Windows PATH (e.g., `C:\Users\<you>\bin\npiperelay.exe`), and make sure that directory is in your Windows PATH.
+
+Create the bridge script `~/.1password-agent-bridge.sh`:
+
+```bash
+cat > ~/.1password-agent-bridge.sh << 'SCRIPT'
+#!/bin/bash
+export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+
+NEEDS_START=true
+if [[ -S "$SSH_AUTH_SOCK" ]]; then
+  ssh-add -l >/dev/null 2>&1
+  if [[ $? -ne 2 ]]; then
+    NEEDS_START=false
+  fi
+fi
+
+if $NEEDS_START; then
+  rm -f "$SSH_AUTH_SOCK"
+  (setsid socat UNIX-LISTEN:"$SSH_AUTH_SOCK",fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
+fi
+SCRIPT
+chmod +x ~/.1password-agent-bridge.sh
+```
+
+Then source it in your shell. Add this to `~/.zshrc` (or it will be there after chezmoi apply — you can add it manually for the initial clone):
+
+```bash
+# 1Password SSH agent bridge (WSL2 → Windows)
+[[ -f "$HOME/.1password-agent-bridge.sh" ]] && source "$HOME/.1password-agent-bridge.sh"
+```
+
+#### Step 3b: Configure macOS to use the 1Password agent
+
+On macOS, add this to `~/.ssh/config`:
+
+```
+Host *
+    IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+```
+
+That's it — no bridge script needed on macOS.
+
+#### Step 4: Verify
+
+Restart your terminal, then:
+
+```bash
+ssh-add -l
+# Should list your 1Password SSH key
+
 ssh -T git@github.com
 # Should print: "Hi A-Stroem! You've successfully authenticated..."
 ```
 
-Now you're ready to clone.
+Now you're ready to clone — and this key will survive WSL resets, new machines, etc.
 
 ---
 
