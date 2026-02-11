@@ -1,0 +1,22 @@
+[data]
+    # EDIT THIS: Set to "work" or "personal" for each machine
+    machineType = "personal"
+    
+    # Email addresses (used automatically based on machineType)
+    workEmail = "work@example.com"
+    personalEmail = "33464978+A-Stroem@users.noreply.github.com"
+    
+    # Your name
+    name = "Anders Strøm"
+    
+    # Computed values (don't edit these)
+    isWork = false
+    isPersonal = true
+
+[git]
+    autoCommit = false
+    autoPush = false
+
+[diff]
+    command = "code"
+    args = ["--wait", "--diff"]
