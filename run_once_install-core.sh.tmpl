@@ -58,7 +58,11 @@ if is_darwin; then
   if [[ -x "$(brew --prefix)/opt/fzf/install" ]]; then
     "$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc || true
   fi
-  
+
+  # Install zsh plugins
+  echo "📦 Installing zsh plugins..."
+  brew install zsh-syntax-highlighting zsh-autosuggestions
+
   # Kubernetes tools
   echo "📦 Installing Kubernetes tools..."
   brew install \
@@ -119,12 +123,31 @@ elif is_linux; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
   
+  # Install zsh plugins
+  echo "📦 Installing zsh plugins..."
+  sudo apt install -y zsh-syntax-highlighting zsh-autosuggestions 2>/dev/null || {
+    echo "⚠️  zsh plugins not in apt, cloning from git..."
+    ZSH_PLUGINS_DIR="$HOME/.zsh/plugins"
+    mkdir -p "$ZSH_PLUGINS_DIR"
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_PLUGINS_DIR/zsh-syntax-highlighting" 2>/dev/null || \
+      (cd "$ZSH_PLUGINS_DIR/zsh-syntax-highlighting" && git pull)
+    git clone https://github.com/zsh-users/zsh-autosuggestions.git "$ZSH_PLUGINS_DIR/zsh-autosuggestions" 2>/dev/null || \
+      (cd "$ZSH_PLUGINS_DIR/zsh-autosuggestions" && git pull)
+  }
+
   # Install modern tools if available (Ubuntu 22.04+)
   echo "📦 Installing modern CLI tools (if available)..."
   sudo apt install -y zoxide bat eza 2>/dev/null || {
     echo "⚠️  Some modern tools not available via apt (zoxide, bat, eza)"
     echo "   These will work on Ubuntu 24.04+ or install manually"
   }
+
+  # Create bat symlink if batcat is installed (Ubuntu names it batcat)
+  if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
+    echo "📦 Creating bat symlink for batcat..."
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
+  fi
   
   # Install kubectl
   if ! command -v kubectl >/dev/null 2>&1; then

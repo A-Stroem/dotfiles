@@ -26,13 +26,24 @@ typeset -U path PATH
 
 # Add local bin to PATH
 path=("$HOME/.local/bin" $path)
+
+# Homebrew PATH for Apple Silicon macOS
+if [[ -f /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
 export PATH
 
 # ----------------------------
-# Editor
+# Editor (fall back to vim if VS Code is unavailable)
 # ----------------------------
-export EDITOR="code --wait"
-export VISUAL="code --wait"
+if command -v code >/dev/null 2>&1; then
+  export EDITOR="code --wait"
+  export VISUAL="code --wait"
+else
+  export EDITOR="vim"
+  export VISUAL="vim"
+fi
 export PAGER="less -FRX"
 
 # ----------------------------
@@ -44,9 +55,12 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 # WSL2-specific fixes
 # ----------------------------
 if grep -qi microsoft /proc/version 2>/dev/null; then
-  # Fix DNS issues
-  export WSL_DNS_FIX=true
-  
+  export IS_WSL=true
+
+  # Clipboard: use Windows clip.exe from WSL
+  alias pbcopy='clip.exe'
+  alias pbpaste='powershell.exe -command "Get-Clipboard" | tr -d "\r"'
+
   # Windows interop helpers
   alias explorer='explorer.exe'
   alias codewin='code.exe'
@@ -78,14 +92,22 @@ fi
 # ----------------------------
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init zsh)"
-  alias cd='z'
 fi
 
 # ----------------------------
 # fzf: fuzzy everything
 # ----------------------------
+# Source fzf keybindings/completions from whichever install method was used
 if [ -f "$HOME/.fzf.zsh" ]; then
   source "$HOME/.fzf.zsh"
+elif [ -f "/usr/share/doc/fzf/examples/key-bindings.zsh" ]; then
+  # apt install fzf (Debian/Ubuntu)
+  source /usr/share/doc/fzf/examples/key-bindings.zsh
+  [ -f /usr/share/doc/fzf/examples/completion.zsh ] && source /usr/share/doc/fzf/examples/completion.zsh
+elif command -v brew >/dev/null 2>&1 && [ -f "$(brew --prefix 2>/dev/null)/opt/fzf/shell/key-bindings.zsh" ]; then
+  # Homebrew install
+  source "$(brew --prefix)/opt/fzf/shell/key-bindings.zsh"
+  [ -f "$(brew --prefix)/opt/fzf/shell/completion.zsh" ] && source "$(brew --prefix)/opt/fzf/shell/completion.zsh"
 fi
 
 # Better fzf defaults
@@ -113,10 +135,7 @@ if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
   alias fd='fdfind'
 fi
 
-# Use ripgrep for grep
-if command -v rg >/dev/null 2>&1; then
-  alias grep='rg'
-fi
+# ripgrep: use rg directly, don't alias over grep (different flag syntax)
 
 # ----------------------------
 # Guard rails (interactive only)
@@ -261,7 +280,7 @@ ports() {
 }
 
 psg() {
-  ps aux | rg -i "${1:?usage: psg <pattern>}"
+  ps aux | command grep -i "${1:?usage: psg <pattern>}"
 }
 
 # Kill process on port
@@ -468,6 +487,50 @@ export MACHINE_TYPE="work"
 # Personal machine configuration loaded
 export MACHINE_TYPE="personal"
 {{- end }}
+
+# ----------------------------
+# Completions
+# ----------------------------
+autoload -Uz compinit
+# Only regenerate compdump once per day for faster startup
+if [[ -n "$HOME/.zcompdump"(#qN.mh+24) ]]; then
+  compinit
+else
+  compinit -C
+fi
+
+# Case-insensitive and partial completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# Tool-specific completions
+command -v kubectl >/dev/null 2>&1 && source <(kubectl completion zsh) 2>/dev/null
+command -v helm >/dev/null 2>&1 && source <(helm completion zsh) 2>/dev/null
+
+# ----------------------------
+# Plugins: syntax highlighting + autosuggestions
+# ----------------------------
+# Try Homebrew paths first, then apt paths, then git-cloned paths
+_zsh_plugin_load() {
+  local plugin="$1"
+  local brew_path="${HOMEBREW_PREFIX:-/opt/homebrew}/share/$plugin/$plugin.zsh"
+  local apt_path="/usr/share/$plugin/$plugin.zsh"
+  local git_path="$HOME/.zsh/plugins/$plugin/$plugin.zsh"
+
+  if [ -f "$brew_path" ]; then
+    source "$brew_path"
+  elif [ -f "$apt_path" ]; then
+    source "$apt_path"
+  elif [ -f "$git_path" ]; then
+    source "$git_path"
+  fi
+}
+
+_zsh_plugin_load zsh-autosuggestions
+_zsh_plugin_load zsh-syntax-highlighting  # must be sourced last
+
+unfunction _zsh_plugin_load
 
 # ----------------------------
 # Load local overrides (not committed)
