@@ -4,10 +4,16 @@
 
 # Documentation - don't copy to home directory
 README.md
-LICENSE
-CHANGES.md
 QUICK_SETUP.md
 WORK_VS_PERSONAL.md
+CHANGES.md
+WINDOWS_TERMINAL_SETUP.md
+TEMPLATE_FIX.md
+LICENSE
+*.md
+
+# Windows Terminal settings - managed by script
+.config/windows-terminal/
 
 # Scripts directory - only for bootstrapping
 scripts/
@@ -52,3 +58,6 @@ scripts/
 .Trash/
 .Spotlight-V100/
 .fseventsd/
+
+# Chezmoi config (managed separately per machine)
+.chezmoi.toml
