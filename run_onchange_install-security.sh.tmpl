@@ -11,6 +11,21 @@ echo "🔒 Installing security scanning tools..."
 is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
 is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
 
+get_arch() {
+  local arch
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64)  echo "x64" ;;
+    aarch64) echo "arm64" ;;
+    armv7l)  echo "armv7" ;;
+    *)       echo "$arch" ;;
+  esac
+}
+
+github_latest_tag() {
+  curl -fsSL "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name'
+}
+
 # ----------------------------
 # Install gitleaks (secret scanning)
 # ----------------------------
@@ -20,8 +35,10 @@ if ! command -v gitleaks >/dev/null 2>&1; then
   if is_darwin; then
     brew install gitleaks
   elif is_linux; then
-    GITLEAKS_VERSION="8.18.2"
-    wget -qO- "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+    gl_arch="$(get_arch)"
+    gl_tag="$(github_latest_tag gitleaks/gitleaks)"
+    gl_version="${gl_tag#v}"
+    wget -qO- "https://github.com/gitleaks/gitleaks/releases/download/${gl_tag}/gitleaks_${gl_version}_linux_${gl_arch}.tar.gz" \
       | tar xvz -C /tmp
     sudo mv /tmp/gitleaks /usr/local/bin/
     sudo chmod +x /usr/local/bin/gitleaks

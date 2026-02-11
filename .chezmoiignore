@@ -1,1 +1,64 @@
+# ============================================================
+# Chezmoi ignore - files NOT to manage/apply
+# ============================================================
+
+# Documentation - don't copy to home directory
+README.md
+QUICK_SETUP.md
+WORK_VS_PERSONAL.md
+LICENSE
+*.md
+
+# Windows Terminal settings - managed by script
+.config/windows-terminal/
+
+# Scripts directory - only for bootstrapping
+scripts/
+
+# Git files - already in the repo
+.git
+.gitignore
+.gitattributes
+
+# SSH private keys - manage separately or use git-crypt
+# Uncomment if you want to manage SSH keys outside chezmoi
+# .ssh/id_*
+# .ssh/*.pem
+
+# Project-specific environment files
+**/.envrc
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Ansible vault passwords
+**/.vault_pass
+**/vault_pass.txt
+
+# Temporary files
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+**/*.swo
+**/*~
+
+# Local overrides (not committed)
+.zshrc.local
+.gitconfig.local
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.code-workspace
+
+# OS-specific files
+.Trash/
+.Spotlight-V100/
+.fseventsd/
+
+# Chezmoi config (managed separately per machine)
 .chezmoi.toml
+
+# Example envrc files - reference only
+example-personal.envrc
+example-work.envrc

@@ -9,6 +9,24 @@ set -euo pipefail
 is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
 is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
 
+# Map uname -m to common binary naming conventions
+get_arch() {
+  local arch
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64)  echo "amd64" ;;
+    aarch64) echo "arm64" ;;
+    armv7l)  echo "armv7" ;;
+    *)       echo "$arch" ;;
+  esac
+}
+
+# Fetch the latest release tag from a GitHub repo
+# Usage: github_latest_tag owner/repo
+github_latest_tag() {
+  curl -fsSL "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name'
+}
+
 echo "🚀 Installing core packages..."
 
 # ----------------------------
@@ -58,7 +76,11 @@ if is_darwin; then
   if [[ -x "$(brew --prefix)/opt/fzf/install" ]]; then
     "$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc || true
   fi
-  
+
+  # Install zsh plugins
+  echo "📦 Installing zsh plugins..."
+  brew install zsh-syntax-highlighting zsh-autosuggestions
+
   # Kubernetes tools
   echo "📦 Installing Kubernetes tools..."
   brew install \
@@ -119,19 +141,47 @@ elif is_linux; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
   
+  # Install zsh plugins
+  echo "📦 Installing zsh plugins..."
+  sudo apt install -y zsh-syntax-highlighting zsh-autosuggestions 2>/dev/null || {
+    echo "⚠️  zsh plugins not in apt, cloning from git..."
+    ZSH_PLUGINS_DIR="$HOME/.zsh/plugins"
+    mkdir -p "$ZSH_PLUGINS_DIR"
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_PLUGINS_DIR/zsh-syntax-highlighting" 2>/dev/null || \
+      (cd "$ZSH_PLUGINS_DIR/zsh-syntax-highlighting" && git pull)
+    git clone https://github.com/zsh-users/zsh-autosuggestions.git "$ZSH_PLUGINS_DIR/zsh-autosuggestions" 2>/dev/null || \
+      (cd "$ZSH_PLUGINS_DIR/zsh-autosuggestions" && git pull)
+  }
+
   # Install modern tools if available (Ubuntu 22.04+)
   echo "📦 Installing modern CLI tools (if available)..."
   sudo apt install -y zoxide bat eza 2>/dev/null || {
     echo "⚠️  Some modern tools not available via apt (zoxide, bat, eza)"
     echo "   These will work on Ubuntu 24.04+ or install manually"
   }
+
+  # Create bat symlink if batcat is installed (Ubuntu names it batcat)
+  if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
+    echo "📦 Creating bat symlink for batcat..."
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
+  fi
   
-  # Install kubectl
+  # Install kubectl (architecture-aware)
   if ! command -v kubectl >/dev/null 2>&1; then
     echo "📦 Installing kubectl..."
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    kube_arch="$(get_arch)"
+    kube_stable="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+    curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl"
+    # Verify checksum
+    curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl.sha256"
+    if echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check --status 2>/dev/null; then
+      echo "✅ kubectl checksum verified"
+    else
+      echo "⚠️  kubectl checksum verification failed, installing anyway"
+    fi
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-    rm kubectl
+    rm -f kubectl kubectl.sha256
   fi
   
   # Install kubectx/kubens
@@ -149,11 +199,12 @@ elif is_linux; then
     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   fi
   
-  # Install k9s
+  # Install k9s (latest release, architecture-aware)
   if ! command -v k9s >/dev/null 2>&1; then
     echo "📦 Installing k9s..."
-    K9S_VERSION="v0.32.4"
-    wget -qO- "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar xvz -C /tmp
+    k9s_arch="$(get_arch)"
+    k9s_version="$(github_latest_tag derailed/k9s)"
+    wget -qO- "https://github.com/derailed/k9s/releases/download/${k9s_version}/k9s_Linux_${k9s_arch}.tar.gz" | tar xvz -C /tmp
     sudo mv /tmp/k9s /usr/local/bin/
   fi
   

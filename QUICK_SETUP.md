@@ -1,283 +1,242 @@
-# 🚀 Quick Setup Guide
+# Quick Setup Guide
 
-## Part 1: First Time Setup on WSL2 Ubuntu
+Step-by-step instructions for setting up a fresh machine. Works on both WSL2 Ubuntu and macOS.
 
-### Step 1: Download All Dotfiles
-Download all artifact files from Claude into a folder on your computer.
+---
 
-### Step 2: Bootstrap WSL2
+## WSL2 Ubuntu — Fresh Install
+
+### Step 1: Bootstrap
+
+Open your WSL2 Ubuntu terminal:
+
 ```bash
-# Open WSL2 Ubuntu terminal
-# Update system
-sudo apt update && sudo apt upgrade -y
+# Option A: Run the bootstrap script directly
+curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-wsl.sh | bash
 
-# Install chezmoi
+# Option B: Or do it manually
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git ca-certificates
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-### Step 3: Initialize Chezmoi
+### Step 2: Initialize and Apply
+
 ```bash
-# Initialize chezmoi
-chezmoi init
-cd ~/.local/share/chezmoi
+~/.local/bin/chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
 ```
 
-### Step 4: Copy Dotfiles
-Copy all the downloaded files into `~/.local/share/chezmoi/` maintaining the structure:
-- `dot_*` files go in the root
-- `dot_config/` directory with starship.toml, mise/, direnv/
-- `private_dot_ssh/` directory with config
-- `run_once_*` scripts in root
-- `scripts/` directory with bootstrap scripts
+You will be prompted for:
+- **Machine type** — enter `work` or `personal`
+- **Your full name** — used in git commits
+- **Personal email** — default git email on personal machines
+- **Work email** — git email for work repos (or default on work machines)
 
-### Step 5: Update Personal Info
+These are saved in `~/.config/chezmoi/chezmoi.toml` and won't be asked again.
+
+This single command will:
+1. Clone the dotfiles repo
+2. Prompt for your configuration
+3. Copy all configs to `~/`
+4. Run install scripts (core packages, security tools, 1Password if personal, work tools if work)
+
+### Step 3: Restart Shell
+
 ```bash
-# Edit with your information
-vim ~/.local/share/chezmoi/dot_gitconfig
-# Change: name and email
-
-vim ~/.local/share/chezmoi/dot_gitconfig-work
-# Change: work email
-```
-
-### Step 6: Create Git Repo
-```bash
-# Still in ~/.local/share/chezmoi
-git init
-git add .
-git commit -m "Initial dotfiles: zsh, tmux, starship, security"
-
-# Create repo on GitHub, then:
-git remote add origin git@github.com:YOUR_USERNAME/dotfiles.git
-git branch -M main
-git push -u origin main
-```
-
-### Step 7: Apply Dotfiles
-```bash
-cd ~
-chezmoi apply -v
-
-# This will:
-# - Copy all dot_* files to ~/
-# - Run all installation scripts
-# - Set up your environment
-
-# Restart shell
 exec zsh
 ```
 
-### Step 8: Post-Install Configuration
-```bash
-# 1. Generate GPG key for commit signing
-gpg --full-generate-key
-# Choose RSA 4096, valid for 2 years
-# Use your work email
+### Step 4: Post-Install
 
-# 2. Configure git to use GPG key
+```bash
+# Set up GPG signing
+gpg --full-generate-key
 gpg --list-secret-keys --keyid-format=long
-# Note the key ID (after rsa4096/)
 git config --global user.signingkey YOUR_KEY_ID
 
-# 3. Set up 1Password CLI
-op signin
-# Follow prompts to sign in
-
-# 4. Create work directory
-mkdir -p ~/work
-
-# 5. Create SSH sockets directory
-mkdir -p ~/.ssh/sockets
-
-# 6. Generate SSH key if needed
+# Set up SSH key (if needed)
 ssh-keygen -t ed25519 -C "your_email@example.com"
+# Add public key to GitHub/GitLab
+
+# 1Password (personal machines only)
+op signin
+
+# Create work directory (personal machines)
+mkdir -p ~/work
 ```
 
-### Step 9: Test Everything
-```bash
-# Test shell
-which zsh
-echo $SHELL
+### Step 5: Verify
 
-# Test tools
+```bash
+# Shell
+echo $SHELL                   # Should be /usr/bin/zsh or similar
 starship --version
 mise --version
-direnv version
-tmux -V
+
+# Tools
 kubectl version --client
+helm version --short
+k9s version --short
 ansible --version
 
-# Test 1Password
-op item list
-
-# Test git signing
-echo "test" | gpg --clearsign
-
-# Test security tools
+# Security
 gitleaks version
 trivy version
 checkov --version
+
+# Git
+git config user.name
+git config user.email
+echo "test" | gpg --clearsign  # GPG signing
 ```
 
 ---
 
-## Part 2: Setup on macOS
+## macOS — Fresh Install
 
-### Step 1: Bootstrap macOS
+### Step 1: Bootstrap
+
+Open Terminal.app:
+
 ```bash
-# Open Terminal.app
-# Run bootstrap script
+# Option A: Run the bootstrap script
+curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-mac.sh | bash
+
+# Option B: Or do it manually
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install chezmoi
+brew install chezmoi git
 ```
 
-### Step 2: Pull and Apply Dotfiles
-```bash
-# One command to set everything up!
-chezmoi init --apply git@github.com:YOUR_USERNAME/dotfiles.git
+### Step 2: Initialize and Apply
 
-# Restart shell
+```bash
+chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
+```
+
+Same prompts as WSL (machine type, name, emails). Same single-command setup.
+
+### Step 3: Restart Shell
+
+```bash
 exec zsh
 ```
 
-### Step 3: macOS-Specific Setup
+### Step 4: Post-Install
+
+Same as WSL — GPG key, SSH key, 1Password signin, work directory.
+
+### Step 5: Install Nerd Font (for Starship icons)
+
 ```bash
-# Install Ghostty (if using)
-brew install --cask ghostty
+# On your host machine (not inside WSL)
+bash scripts/download-nerd-font.sh
+```
 
-# Set up 1Password CLI
-op signin
-
-# Set up GPG (same as WSL)
-gpg --full-generate-key
-gpg --list-secret-keys --keyid-format=long
-git config --global user.signingkey YOUR_KEY_ID
+For WSL, also configure Windows Terminal:
+```bash
+bash scripts/install-windows-terminal-settings.sh
 ```
 
 ---
 
-## Part 3: Daily Usage
+## Syncing to Another Machine
 
-### Making Changes
+Already set up on one machine? On the new machine, after bootstrapping:
+
 ```bash
-# Edit a config
-chezmoi edit ~/.zshrc
-
-# Apply changes
-chezmoi apply
-
-# Commit to git
-chezmoi cd
-git add .
-git commit -m "Update aliases"
-git push
-exit
+chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
+# Answer prompts for this machine's configuration
+exec zsh
 ```
 
-### Syncing to Another Machine
+To pull updates on an already-configured machine:
+
 ```bash
 chezmoi update
 ```
 
-### Using Customer Contexts
+---
+
+## Changing Your Configuration
+
+### Re-prompt for machine type / emails
+
 ```bash
-# In a customer project directory
+chezmoi init --prompt --apply
+```
+
+### Edit chezmoi config directly
+
+```bash
+chezmoi edit-config
+# Modify [data] section, then:
+chezmoi apply
+```
+
+### Edit a managed dotfile
+
+```bash
+chezmoi edit ~/.zshrc
+chezmoi diff          # Preview
+chezmoi apply         # Apply
+```
+
+### Commit changes back to git
+
+```bash
+chezmoi cd
+git add . && git commit -m "Update config" && git push
+exit
+```
+
+---
+
+## Using Customer Contexts
+
+```bash
 cd ~/work/customer-acme
 
-# Create .envrc (copy from example.envrc)
-cp /path/to/example.envrc .envrc
+# Create .envrc (see example-personal.envrc or example-work.envrc)
+cat > .envrc << 'EOF'
+export CUSTOMER_CONTEXT="acme-corp"
+export AWS_PROFILE="acme-prod"
+# Add secrets via 1Password (personal) or files (work)
+EOF
 
-# Edit with customer-specific secrets
-vim .envrc
-
-# Allow direnv to load it
 direnv allow
-
-# Your prompt now shows: 🏢 acme-corp
+# Your prompt now shows the customer context
 ```
 
-### Security Scanning Before Commits
-```bash
-# In any repo
-safety-check
+---
 
-# Or individual scans
-scan-secrets      # gitleaks
-scan-ansible      # checkov
-trivy fs .        # trivy
-```
+## File Locations
+
+| What | Where |
+|------|-------|
+| Dotfiles source repo | `~/.local/share/chezmoi/` |
+| Applied configs | `~/` (home directory) |
+| chezmoi config | `~/.config/chezmoi/chezmoi.toml` |
+| chezmoi binary | `~/.local/bin/chezmoi` (Linux) or `$(brew --prefix)/bin/chezmoi` (macOS) |
 
 ---
 
 ## Common Issues
 
-### Issue: zsh not default shell
-```bash
-chsh -s $(which zsh)
-# Restart terminal
-```
-
-### Issue: 1Password CLI not working
-```bash
-op signin
-op account list
-```
-
-### Issue: direnv not loading
-```bash
-direnv allow .
-```
-
-### Issue: kubectl context not switching
-```bash
-kubectl config get-contexts
-kubectl config use-context <name>
-```
+| Problem | Fix |
+|---------|-----|
+| Prompts not appearing | Use `chezmoi init --prompt`, not `chezmoi apply` |
+| zsh not default shell | `chsh -s $(which zsh)` then restart terminal |
+| 1Password not working | `op signin` then `op account list` |
+| direnv not loading | `direnv allow .` |
+| Install scripts not re-running | Edit the script — `run_onchange_` auto-reruns on change |
+| Force full re-run | `rm ~/.config/chezmoi/chezmoistate.boltdb && chezmoi apply` |
+| WSL DNS issues | `sudo rm /etc/resolv.conf && echo "nameserver 1.1.1.1" \| sudo tee /etc/resolv.conf` |
 
 ---
 
-## File Locations Reference
+## Security Reminders
 
-| What | Where |
-|------|-------|
-| Dotfiles source (git repo) | `~/.local/share/chezmoi/` |
-| Actual configs | `~/` (home directory) |
-| Chezmoi binary | `~/.local/bin/chezmoi` (Linux) or `/opt/homebrew/bin/chezmoi` (macOS) |
-| SSH config | `~/.ssh/config` |
-| Git config | `~/.gitconfig` |
-| zsh config | `~/.zshrc` |
+**Never commit:** SSH private keys, API tokens, `.envrc` files with real secrets, vault passwords.
 
----
-
-## Next Steps
-
-1. ✅ Set up GPG signing
-2. ✅ Configure 1Password CLI  
-3. ✅ Create work directory structure
-4. ✅ Add SSH keys to GitHub/GitLab
-5. ✅ Set up pre-commit hooks in projects
-6. ✅ Test customer context switching
-7. ✅ Configure any work-specific tools
-
----
-
-## Important Security Reminders
-
-❌ **NEVER commit:**
-- SSH private keys (unless using git-crypt)
-- API tokens/passwords
-- `.envrc` files with real secrets
-- Ansible vault passwords
-- Customer credentials
-
-✅ **ALWAYS:**
-- Use 1Password for secrets
-- Run `safety-check` before pushing
-- Sign your commits with GPG
-- Use customer context for clarity
-- Keep `.envrc` in `.gitignore`
-
----
-
-**Need help?** Check the full README.md for detailed documentation.
+**Always:** Use 1Password or your company's secrets manager, run `safety-check` before pushing, sign commits with GPG.
