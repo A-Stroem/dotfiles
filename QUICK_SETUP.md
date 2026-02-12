@@ -272,6 +272,22 @@ If Windows Terminal had never been opened before setup, open it once and then ru
 chezmoi apply
 ```
 
+### Step 6: Verify Docker on WSL
+
+```bash
+docker --version
+docker compose version
+docker ps
+```
+
+If you see permission errors, run:
+
+```bash
+newgrp docker
+```
+
+Or restart WSL / open a new terminal session.
+
 ---
 
 ## Syncing to Another Machine

@@ -12,6 +12,7 @@ Built for MSSP/SOC workflows: Ansible automation, Kubernetes management, multi-c
 - **Security**: gitleaks, trivy, checkov, pre-commit, git-secrets
 - **Ansible**: Vault helpers, inventory shortcuts, linting
 - **Kubernetes**: kubectl, kubectx/kubens, helm, k9s (latest versions auto-fetched from GitHub)
+- **Docker (Linux/WSL)**: Docker Engine + Compose plugin installed automatically
 - **Modern CLI**: bat, eza, ripgrep, fd, fzf, zoxide
 - **Tmux**: Session management with customer context in status bar
 - **WSL terminal UX**: Automatic Windows Terminal profile merge (non-destructive) with WSL as default profile
@@ -75,7 +76,7 @@ dotfiles/
 │   └── direnv/direnvrc.tmpl                   # Shared direnv helpers (templated)
 ├── private_dot_ssh/
 │   └── config                                 # SSH config
-├── run_onchange_install-core.sh.tmpl          # Core packages (apt/brew, kubectl, k9s, helm, etc.)
+├── run_onchange_install-core.sh.tmpl          # Core packages (apt/brew, kubectl, k9s, helm, docker, etc.)
 ├── run_onchange_install-security.sh.tmpl      # Security tools (gitleaks, trivy, checkov, pre-commit)
 ├── run_onchange_install-1password-cli.sh.tmpl # 1Password CLI (personal machines only)
 ├── run_onchange_install-work-tools.sh.tmpl    # Company-specific tools (work machines only)
@@ -192,6 +193,50 @@ exit
 | `dc` | `docker compose` |
 | `dcu` | `docker compose up` |
 | `dcd` | `docker compose down` |
+
+## Everyday Workflow Tips
+
+### 1) Fast file + text navigation (`fd`, `fzf`, `rg`)
+
+```bash
+fd docker                         # Find files/dirs by name
+fd -t f | fzf                     # Fuzzy-pick a file from current tree
+rg "TODO|FIXME" .                 # Search text recursively
+rg "function_name" src            # Jump to implementation quickly
+```
+
+### 2) Version/runtime management (`mise`)
+
+```bash
+mise ls                           # See active tool versions
+mise use -g node@lts             # Set global runtime
+mise use -p python@3.12          # Pin version in current project
+mise install                     # Install versions from config
+```
+
+### 3) Directory jumping (`zoxide`)
+
+```bash
+z work                            # Jump to a frequent path matching "work"
+zi                                # Interactive jump picker
+```
+
+### 4) Better defaults for everyday shell work (`bat`, `eza`)
+
+```bash
+bat README.md                     # Syntax-highlighted file view
+eza -la --git                     # Modern ls with git info
+```
+
+### 5) Docker sanity checks
+
+```bash
+docker --version
+docker compose version
+docker ps
+```
+
+If Docker shows "permission denied", run `newgrp docker` or restart the shell/WSL session.
 
 ### Security
 | Alias | Command |
