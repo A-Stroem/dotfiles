@@ -272,6 +272,17 @@ If Windows Terminal had never been opened before setup, open it once and then ru
 chezmoi apply
 ```
 
+VS Code settings are also merged automatically on WSL during `chezmoi apply`:
+- `terminal.integrated.defaultProfile.linux = zsh`
+- Terminal font/cursor/scrollback settings
+- Dracula-style `workbench.colorCustomizations` for terminal colors
+
+Manual fallback:
+
+```bash
+bash ~/.local/share/chezmoi/scripts/install-vscode-settings.sh
+```
+
 ### Step 6: Verify Docker on WSL
 
 ```bash

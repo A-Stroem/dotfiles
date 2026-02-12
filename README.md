@@ -16,6 +16,7 @@ Built for MSSP/SOC workflows: Ansible automation, Kubernetes management, multi-c
 - **Modern CLI**: bat, eza, ripgrep, fd, fzf, zoxide
 - **Tmux**: Session management with customer context in status bar
 - **WSL terminal UX**: Automatic Windows Terminal profile merge (non-destructive) with WSL as default profile
+- **VS Code UX (WSL)**: Automatic non-destructive merge of terminal + color settings for WSL and Windows user contexts
 
 ## Quick Start
 
@@ -80,6 +81,7 @@ dotfiles/
 ├── run_onchange_install-security.sh.tmpl      # Security tools (gitleaks, trivy, checkov, pre-commit)
 ├── run_onchange_install-1password-cli.sh.tmpl # 1Password CLI (personal machines only)
 ├── run_onchange_install-work-tools.sh.tmpl    # Company-specific tools (work machines only)
+├── run_onchange_install-vscode-settings.sh.tmpl # WSL-only VS Code settings merge
 ├── run_onchange_install-windows-terminal.sh.tmpl # WSL-only Windows Terminal profile merge
 ├── example-personal.envrc                     # Example .envrc with 1Password integration
 ├── example-work.envrc                         # Example .envrc with file-based secrets
@@ -87,6 +89,7 @@ dotfiles/
     ├── bootstrap-from-zero-wsl.sh             # WSL bootstrap (curl, git, chezmoi)
     ├── bootstrap-from-zero-mac.sh             # macOS bootstrap (Homebrew, git, chezmoi)
     ├── download-nerd-font.sh                  # Nerd Font installer
+    ├── install-vscode-settings.sh             # VS Code settings merge installer
     └── install-windows-terminal-settings.sh   # Windows Terminal profile merge installer
 ```
 
@@ -283,6 +286,16 @@ Or run the installer directly:
 
 ```bash
 bash ~/.local/share/chezmoi/scripts/install-windows-terminal-settings.sh
+```
+
+### VS Code terminal/theme did not update
+
+The merge is automatic on WSL during `chezmoi apply` and only updates managed keys.
+
+Run manually if needed:
+
+```bash
+bash ~/.local/share/chezmoi/scripts/install-vscode-settings.sh
 ```
 
 ### Force re-run of install scripts
