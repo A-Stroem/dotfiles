@@ -7,20 +7,52 @@ set -euo pipefail
 
 STRICT_MODE=false
 SET_DEFAULT_PROFILE=true
+THEME=""
 
 usage() {
-    cat <<'EOF'
+    cat <<'USAGE'
 Usage: install-windows-terminal-settings.sh [options]
 
 Options:
-  --strict               Exit non-zero on recoverable setup issues
-  --no-default-profile   Do not set the managed WSL profile as default
-  -h, --help             Show this help text
-EOF
+  --theme <dracula|gruvbox>   Theme to apply (default: detect from chezmoi data)
+  --strict                    Exit non-zero on recoverable setup issues
+  --no-default-profile        Do not set the managed WSL profile as default
+  -h, --help                  Show this help text
+USAGE
+}
+
+normalize_theme() {
+    local value
+    value="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
+    case "$value" in
+        dracula|gruvbox)
+            printf '%s\n' "$value"
+            ;;
+        *)
+            printf '%s\n' "gruvbox"
+            ;;
+    esac
+}
+
+detect_theme_from_chezmoi() {
+    local config_file detected
+    config_file="${HOME}/.config/chezmoi/chezmoi.toml"
+    detected=""
+
+    if [[ -f "$config_file" ]]; then
+        detected="$(sed -nE 's/^[[:space:]]*terminalTheme[[:space:]]*=[[:space:]]*"([^"]+)"[[:space:]]*$/\1/p' "$config_file" | head -n 1)"
+    fi
+
+    normalize_theme "$detected"
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --theme)
+            [[ $# -ge 2 ]] || { echo "Missing value for --theme"; usage; exit 1; }
+            THEME="$2"
+            shift 2
+            ;;
         --strict)
             STRICT_MODE=true
             shift
@@ -41,7 +73,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "🔧 Configuring Windows Terminal (non-destructive merge)..."
+if [[ -z "$THEME" ]]; then
+    THEME="$(detect_theme_from_chezmoi)"
+else
+    THEME="$(normalize_theme "$THEME")"
+fi
+
+echo "🔧 Configuring Windows Terminal (non-destructive merge) for theme '${THEME}'..."
 
 if ! grep -qi microsoft /proc/version 2>/dev/null; then
     echo "❌ Not running in WSL. This script is for WSL only."
@@ -76,15 +114,6 @@ if [ -z "$WSL_WT_SETTINGS" ]; then
     for location in "${WT_LOCATIONS[@]}"; do
         echo "   - $location"
     done
-    echo ""
-    echo "💡 Troubleshooting:"
-    echo "   1. Make sure Windows Terminal is installed"
-    echo "   2. Try opening Windows Terminal at least once"
-    echo "   3. Check if you're using Windows Terminal Preview (different location)"
-    echo ""
-    echo "🔍 To find the location manually:"
-    echo "   In Windows Terminal, press Ctrl+, (Settings)"
-    echo "   Look at the bottom left for 'Open JSON file'"
     if [ "$STRICT_MODE" = true ]; then
         exit 1
     fi
@@ -107,7 +136,6 @@ if [ -f "$SETTINGS_FILE" ]; then
     echo "✅ Backup created: settings.json.backup.$TIMESTAMP"
 fi
 
-# Merge managed profile and scheme without replacing existing profiles/settings
 if ! command -v python3 >/dev/null 2>&1; then
     echo "❌ python3 is required but not found."
     if [ "$STRICT_MODE" = true ]; then
@@ -117,54 +145,96 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 echo "📝 Merging managed WSL profile into Windows Terminal settings..."
-if ! python3 - "$SETTINGS_FILE" "$SET_DEFAULT_PROFILE" <<'PY'
+if ! python3 - "$SETTINGS_FILE" "$SET_DEFAULT_PROFILE" "$THEME" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 settings_path = Path(sys.argv[1])
 set_default_profile = sys.argv[2].lower() == "true"
+theme_key = sys.argv[3].lower()
 
 PROFILE_GUID = "{f8f98f0e-cf86-448e-b07e-07b185f9dd86}"
 PROFILE_NAME = "WSL (chezmoi)"
-SCHEME_NAME = "Dracula (chezmoi)"
+
+THEMES = {
+    "dracula": {
+        "scheme_name": "Dracula (chezmoi)",
+        "font": "FiraCode Nerd Font",
+        "scheme": {
+            "background": "#1E1F29",
+            "foreground": "#F8F8F2",
+            "selectionBackground": "#44475A",
+            "cursorColor": "#F8F8F2",
+            "black": "#21222C",
+            "red": "#FF5555",
+            "green": "#50FA7B",
+            "yellow": "#F1FA8C",
+            "blue": "#BD93F9",
+            "purple": "#FF79C6",
+            "cyan": "#8BE9FD",
+            "white": "#F8F8F2",
+            "brightBlack": "#6272A4",
+            "brightRed": "#FF6E6E",
+            "brightGreen": "#69FF94",
+            "brightYellow": "#FFFFA5",
+            "brightBlue": "#D6ACFF",
+            "brightPurple": "#FF92DF",
+            "brightCyan": "#A4FFFF",
+            "brightWhite": "#FFFFFF",
+        },
+    },
+    "gruvbox": {
+        "scheme_name": "Gruvbox Dark Hard (chezmoi)",
+        "font": "MesloLGS Nerd Font",
+        "scheme": {
+            "background": "#1d2021",
+            "foreground": "#ebdbb2",
+            "selectionBackground": "#504945",
+            "cursorColor": "#ebdbb2",
+            "black": "#282828",
+            "red": "#cc241d",
+            "green": "#98971a",
+            "yellow": "#d79921",
+            "blue": "#458588",
+            "purple": "#b16286",
+            "cyan": "#689d6a",
+            "white": "#a89984",
+            "brightBlack": "#928374",
+            "brightRed": "#fb4934",
+            "brightGreen": "#b8bb26",
+            "brightYellow": "#fabd2f",
+            "brightBlue": "#83a598",
+            "brightPurple": "#d3869b",
+            "brightCyan": "#8ec07c",
+            "brightWhite": "#ebdbb2",
+        },
+    },
+}
+
+if theme_key not in THEMES:
+    theme_key = "gruvbox"
+
+theme = THEMES[theme_key]
+scheme_name = theme["scheme_name"]
 
 managed_profile = {
     "guid": PROFILE_GUID,
     "name": PROFILE_NAME,
     "commandline": "wsl.exe",
     "startingDirectory": "~",
-    "colorScheme": SCHEME_NAME,
+    "colorScheme": scheme_name,
     "cursorShape": "bar",
     "padding": "8, 8, 8, 8",
     "useAcrylic": False,
     "font": {
-        "face": "FiraCode Nerd Font"
+        "face": theme["font"]
     }
 }
 
 managed_scheme = {
-    "name": SCHEME_NAME,
-    "background": "#1E1F29",
-    "foreground": "#F8F8F2",
-    "selectionBackground": "#44475A",
-    "cursorColor": "#F8F8F2",
-    "black": "#21222C",
-    "red": "#FF5555",
-    "green": "#50FA7B",
-    "yellow": "#F1FA8C",
-    "blue": "#BD93F9",
-    "purple": "#FF79C6",
-    "cyan": "#8BE9FD",
-    "white": "#F8F8F2",
-    "brightBlack": "#6272A4",
-    "brightRed": "#FF6E6E",
-    "brightGreen": "#69FF94",
-    "brightYellow": "#FFFFA5",
-    "brightBlue": "#D6ACFF",
-    "brightPurple": "#FF92DF",
-    "brightCyan": "#A4FFFF",
-    "brightWhite": "#FFFFFF",
+    "name": scheme_name,
+    **theme["scheme"],
 }
 
 try:
@@ -218,7 +288,7 @@ if not isinstance(schemes, list):
 
 scheme_index = None
 for idx, entry in enumerate(schemes):
-    if isinstance(entry, dict) and entry.get("name") == SCHEME_NAME:
+    if isinstance(entry, dict) and entry.get("name") == scheme_name:
         scheme_index = idx
         break
 
@@ -249,7 +319,11 @@ echo "   Existing profiles were preserved."
 echo "   Managed profile: WSL (chezmoi)"
 echo "📁 Location: $(wslpath -w "$WSL_WT_SETTINGS")"
 echo ""
-echo "⚠️  If you haven't installed FiraCode Nerd Font yet:"
+if [[ "$THEME" == "gruvbox" ]]; then
+    echo "⚠️  Ensure MesloLGS Nerd Font is installed on Windows for best results."
+else
+    echo "⚠️  Ensure FiraCode Nerd Font is installed on Windows for best results."
+fi
 echo "   Run: bash ~/.local/share/chezmoi/scripts/download-nerd-font.sh"
 echo ""
 echo "🔄 Close and restart Windows Terminal to apply changes."

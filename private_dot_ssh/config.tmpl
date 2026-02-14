@@ -10,46 +10,41 @@ Host *
   # macOS Keychain integration (ignored on Linux)
   IgnoreUnknown UseKeychain
   UseKeychain yes
-  
+
   # Keep connections alive
   ServerAliveInterval 60
   ServerAliveCountMax 30
-  
-  # Only use explicitly specified identity files
-  IdentitiesOnly yes
-  
-  # Default identity file (ed25519 recommended for security)
-  IdentityFile ~/.ssh/id_ed25519
-  
+
   # Enable connection multiplexing for faster subsequent connections
   ControlMaster auto
-  ControlPath ~/.ssh/sockets/%r@%h-%p
+  ControlPath ~/.ssh/control-%C
   ControlPersist 120
-  
+
   # Use stronger ciphers
   Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
-  
+
   # Use stronger MACs
   MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
-  
+
   # Use stronger key exchange algorithms
   KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
-  
-  # Disable host key checking for localhost (useful for testing)
-  # Remove this if you want strict security
-  # NoHostAuthenticationForLocalhost yes
 
-# Example: GitHub
+# GitHub (prefers SSH agent identities; no hardcoded local key path)
 Host github.com
   HostName github.com
   User git
-  IdentityFile ~/.ssh/id_ed25519
+{{- if eq .chezmoi.os "darwin" }}
+  # Prefer 1Password SSH agent on macOS.
+  # Example key: vault "Homelab", item "github-ssh".
+  IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{- end }}
+  IdentitiesOnly no
 
-# Example: GitLab
+# GitLab
 Host gitlab.com
   HostName gitlab.com
   User git
-  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly no
 
 # Example host patterns for work servers
 # Uncomment and customize as needed
@@ -83,5 +78,4 @@ Host gitlab.com
 #   User ubuntu
 #   IdentityFile ~/.ssh/id_ed25519_work
 
-# Create control sockets directory if it doesn't exist
-# Run: mkdir -p ~/.ssh/sockets
+# ControlPath uses ~/.ssh directly; no extra directory needed

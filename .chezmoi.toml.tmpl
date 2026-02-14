@@ -2,16 +2,24 @@
 {{- $name := promptStringOnce . "name" "Your full name" -}}
 {{- $personalEmail := promptStringOnce . "personalEmail" "Personal email address" -}}
 {{- $workEmail := promptStringOnce . "workEmail" "Work email address" -}}
+{{- $terminalThemeRaw := promptStringOnce . "terminalTheme" "Terminal theme (dracula or gruvbox)" -}}
+{{- $terminalTheme := lower $terminalThemeRaw -}}
+{{- if and (ne $terminalTheme "dracula") (ne $terminalTheme "gruvbox") -}}
+{{- $terminalTheme = "gruvbox" -}}
+{{- end -}}
 
 [data]
     machineType = {{ $machineType | quote }}
     name = {{ $name | quote }}
     personalEmail = {{ $personalEmail | quote }}
     workEmail = {{ $workEmail | quote }}
+    terminalTheme = {{ $terminalTheme | quote }}
 
     # Derived from machineType — never set these manually
     isWork = {{ eq $machineType "work" }}
     isPersonal = {{ eq $machineType "personal" }}
+    isDracula = {{ eq $terminalTheme "dracula" }}
+    isGruvbox = {{ eq $terminalTheme "gruvbox" }}
 
 [git]
     autoCommit = false

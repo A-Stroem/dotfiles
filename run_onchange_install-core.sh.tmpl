@@ -34,6 +34,27 @@ github_latest_tag() {
   curl -fsSL "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name'
 }
 
+# Some systems have legacy SSH remotes for Homebrew taps.
+# Normalize them to HTTPS so brew update does not depend on SSH key setup.
+normalize_homebrew_remotes() {
+  local repos repo remote_path current_remote
+  repos=()
+
+  repos+=("$(brew --repo)")
+  while IFS= read -r repo; do
+    repos+=("$(brew --repo "$repo" 2>/dev/null || true)")
+  done < <(brew tap)
+
+  for repo in "${repos[@]}"; do
+    [[ -z "$repo" || ! -d "$repo/.git" ]] && continue
+    current_remote="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
+    if [[ "$current_remote" =~ ^git@github\.com:(.+)$ ]]; then
+      remote_path="${BASH_REMATCH[1]}"
+      git -C "$repo" remote set-url origin "https://github.com/${remote_path}" || true
+    fi
+  done
+}
+
 # Install Docker Engine + Compose plugin on apt-based Linux.
 # Uses Docker's official repository when possible and falls back to distro packages.
 install_docker_linux() {
@@ -104,6 +125,7 @@ if is_darwin; then
   fi
   
   # Update Homebrew
+  normalize_homebrew_remotes
   brew update
   
   # Install core packages

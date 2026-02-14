@@ -72,9 +72,6 @@
   find-commit = log --all --grep
   contributors = shortlog --summary --numbered --email
 
-[url "git@github.com:"]
-  insteadOf = https://github.com/
-
 {{ if eq .machineType "personal" -}}
 # Personal machine - use includeIf for work repos
 [includeIf "gitdir:~/work/"]

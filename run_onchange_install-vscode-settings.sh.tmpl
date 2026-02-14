@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================
-# Configure VS Code settings for WSL (non-destructive)
+# Configure VS Code settings (non-destructive)
 # ============================================================
 
 set -euo pipefail
-
-# Only run this integration on WSL.
-if ! grep -qi microsoft /proc/version 2>/dev/null; then
-  exit 0
-fi
 
 if ! command -v chezmoi >/dev/null 2>&1; then
   echo "WARN: chezmoi not found in PATH; skipping VS Code settings setup."
@@ -27,4 +22,4 @@ if [[ ! -f "$INSTALL_SCRIPT" ]]; then
   exit 0
 fi
 
-bash "$INSTALL_SCRIPT"
+bash "$INSTALL_SCRIPT" --theme {{ if eq .terminalTheme "dracula" }}"dracula"{{ else }}"gruvbox"{{ end }}

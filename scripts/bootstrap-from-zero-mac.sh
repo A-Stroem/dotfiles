@@ -7,6 +7,62 @@ set -euo pipefail
 
 echo "🚀 Bootstrapping macOS environment..."
 
+repair_tap() {
+  local tap="$1"
+
+  if brew tap | grep -qx "$tap"; then
+    echo "🔧 Retapping ${tap}..."
+    brew untap "$tap" || true
+  fi
+
+  brew tap "$tap"
+}
+
+normalize_homebrew_remotes() {
+  local repos repo remote_path current_remote
+  repos=()
+
+  repos+=("$(brew --repo)")
+  while IFS= read -r repo; do
+    repos+=("$(brew --repo "$repo" 2>/dev/null || true)")
+  done < <(brew tap)
+
+  for repo in "${repos[@]}"; do
+    [[ -z "$repo" || ! -d "$repo/.git" ]] && continue
+    current_remote="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
+    if [[ "$current_remote" =~ ^git@github\.com:(.+)$ ]]; then
+      remote_path="${BASH_REMATCH[1]}"
+      git -C "$repo" remote set-url origin "https://github.com/${remote_path}" || true
+    fi
+  done
+}
+
+update_homebrew() {
+  local update_output
+
+  echo "📦 Updating Homebrew..."
+  if update_output="$(brew update 2>&1)"; then
+    printf '%s\n' "$update_output"
+    return 0
+  fi
+
+  printf '%s\n' "$update_output"
+
+  if grep -Eq "Not a valid ref: refs/remotes/origin/(main|master)" <<<"$update_output"; then
+    echo "⚠️  Detected broken Homebrew tap refs. Attempting auto-repair..."
+    repair_tap homebrew/core || true
+    if brew tap | grep -qx "homebrew/cask"; then
+      repair_tap homebrew/cask || true
+    fi
+    echo "📦 Retrying Homebrew update..."
+    brew update
+    return 0
+  fi
+
+  echo "⚠️  Homebrew update failed. Continuing bootstrap without update."
+  return 0
+}
+
 # Install Homebrew if not present
 if ! command -v brew >/dev/null 2>&1; then
   echo "📦 Installing Homebrew..."
@@ -22,8 +78,8 @@ else
 fi
 
 # Update Homebrew
-echo "📦 Updating Homebrew..."
-brew update
+normalize_homebrew_remotes
+update_homebrew
 
 # Install chezmoi
 if ! command -v chezmoi >/dev/null 2>&1; then
