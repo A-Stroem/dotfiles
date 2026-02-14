@@ -8,6 +8,7 @@ set -euo pipefail
 COMMIT_MESSAGE="chore: bootstrap repository tooling"
 PUSH_ENABLED=true
 INSTALL_HOOKS=true
+GENERATE_PRE_COMMIT_CONFIG=true
 
 usage() {
   cat <<'USAGE'
@@ -17,13 +18,15 @@ Options:
   -m, --message <text>   Commit message (default: chore: bootstrap repository tooling)
       --no-push          Do not push after commit
       --no-hooks         Skip pre-commit/git-secrets hook setup
+      --no-pre-commit-config  Do not generate .pre-commit-config.yaml
   -h, --help             Show help
 
 Behavior:
   1. Verifies current directory is a git repository
   2. Sets practical local git defaults
-  3. Installs pre-commit and git-secrets hooks when available
-  4. Stages all changes, commits, and pushes
+  3. Generates .pre-commit-config.yaml if missing (standard baseline)
+  4. Installs pre-commit and git-secrets hooks when available
+  5. Stages all changes, commits, and pushes
 USAGE
 }
 
@@ -40,6 +43,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-hooks)
       INSTALL_HOOKS=false
+      shift
+      ;;
+    --no-pre-commit-config)
+      GENERATE_PRE_COMMIT_CONFIG=false
       shift
       ;;
     -h|--help)
@@ -75,6 +82,28 @@ git config --local pull.rebase true
 git config --local rebase.autoStash true
 git config --local fetch.prune true
 git config --local push.autoSetupRemote true
+
+if [[ "$GENERATE_PRE_COMMIT_CONFIG" == true ]] && [[ ! -f .pre-commit-config.yaml ]]; then
+  echo "🧩 Generating baseline .pre-commit-config.yaml ..."
+  cat > .pre-commit-config.yaml <<'YAML'
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: detect-private-key
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+YAML
+fi
 
 if [[ "$INSTALL_HOOKS" == true ]]; then
   if command -v pre-commit >/dev/null 2>&1; then

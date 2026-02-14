@@ -6,8 +6,9 @@ Script: `scripts/bootstrap-repo.sh`
 
 1. Validates you are inside a git repository.
 2. Sets local git defaults (`pull.rebase`, `rebase.autoStash`, `fetch.prune`, `push.autoSetupRemote`).
-3. Installs `pre-commit` and `git-secrets` hooks if available.
-4. Stages all changes, commits, and pushes.
+3. Creates a baseline `.pre-commit-config.yaml` if it does not exist.
+4. Installs `pre-commit` and `git-secrets` hooks if available.
+5. Stages all changes, commits, and pushes.
 
 ## Syntax
 
@@ -20,6 +21,7 @@ scripts/bootstrap-repo.sh [options]
 - `-m, --message <text>`: Commit message.
 - `--no-push`: Skip push.
 - `--no-hooks`: Skip hook installation.
+- `--no-pre-commit-config`: Skip generating `.pre-commit-config.yaml`.
 
 ## Examples
 
