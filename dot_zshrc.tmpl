@@ -153,6 +153,24 @@ alias ....='cd ../../..'
 alias reload='exec zsh'
 
 # ----------------------------
+# Development folder shortcuts
+# ----------------------------
+export DEV_HOME="${DEV_HOME:-$HOME/dev}"
+alias dev='cd "$DEV_HOME"'
+alias web='cd "$DEV_HOME/web"'
+alias infra='cd "$DEV_HOME/infrastructure"'
+alias cg='cd "$DEV_HOME/colorgrading"'
+alias cdev='cd "$DEV_HOME"'
+alias cdarchive='cd "$DEV_HOME/archive"'
+alias cdweb='cd "$DEV_HOME/web"'
+alias cdinfra='cd "$DEV_HOME/infrastructure"'
+alias cdlab='cd "$DEV_HOME/lab"'
+alias cdscripts='cd "$DEV_HOME/scripts"'
+alias cdcg='cd "$DEV_HOME/colorgrading"'
+alias cddotfiles='cd "$DEV_HOME/infrastructure/dotfiles"'
+alias cddocker='cd "$DEV_HOME/infrastructure/docker-infra"'
+
+# ----------------------------
 # Git power aliases
 # ----------------------------
 alias g='git'
