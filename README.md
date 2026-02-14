@@ -25,6 +25,8 @@ Built for MSSP/SOC workflows: Ansible automation, Kubernetes management, multi-c
 ```bash
 # 1. Run the bootstrap script (installs curl, git, chezmoi)
 curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-wsl.sh | bash
+# If already cloned locally:
+# bash /path/to/dotfiles/scripts/bootstrap-from-zero-wsl.sh
 
 # 2. Initialize dotfiles — you'll be prompted for machine type, name, and emails
 ~/.local/bin/chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
@@ -41,6 +43,8 @@ Set Windows' **Default terminal application** to **Windows Terminal** once in Wi
 ```bash
 # 1. Run the bootstrap script (installs Homebrew, git, chezmoi)
 curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-mac.sh | bash
+# If already cloned locally:
+# bash /path/to/dotfiles/scripts/bootstrap-from-zero-mac.sh
 
 # 2. Initialize dotfiles — you'll be prompted for machine type, name, and emails
 chezmoi init --apply git@github.com:A-Stroem/dotfiles.git
@@ -83,6 +87,7 @@ dotfiles/
 ├── run_onchange_install-work-tools.sh.tmpl    # Company-specific tools (work machines only)
 ├── run_onchange_install-vscode-settings.sh.tmpl # WSL-only VS Code settings merge
 ├── run_onchange_install-windows-terminal.sh.tmpl # WSL-only Windows Terminal profile merge
+├── run_zz_print-final-notes.sh.tmpl           # Prints all actionable notes at the end of chezmoi apply
 ├── example-personal.envrc                     # Example .envrc with 1Password integration
 ├── example-work.envrc                         # Example .envrc with file-based secrets
 └── scripts/

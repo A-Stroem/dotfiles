@@ -5,6 +5,12 @@
 
 set -euo pipefail
 
+NOTES_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/install-final-notes.txt"
+mkdir -p "$(dirname "$NOTES_FILE")"
+add_note() {
+  printf '%s\n' "$1" >> "$NOTES_FILE"
+}
+
 echo "🔒 Installing security scanning tools..."
 
 # Helper functions
@@ -188,13 +194,8 @@ fi
 
 echo ""
 echo "📝 Security tools installed successfully!"
-echo ""
-echo "⚠️  IMPORTANT: Set up git hooks in your repositories:"
-echo "  1. cd <your-repo>"
-echo "  2. Create .pre-commit-config.yaml"
-echo "  3. Run: pre-commit install"
-echo ""
-echo "🔐 Test your security setup with:"
-echo "  gitleaks detect --no-git"
-echo "  trivy fs ."
-echo "  checkov -d ."
+
+add_note "Enable git hooks per repo: pre-commit install"
+add_note "Security quick test: gitleaks detect --no-git"
+add_note "Security quick test: trivy fs ."
+add_note "Security quick test: checkov -d ."

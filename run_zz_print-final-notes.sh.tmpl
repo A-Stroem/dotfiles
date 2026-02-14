@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# ============================================================
+# Print deferred setup notes at the very end of chezmoi apply
+# ============================================================
+
+set -euo pipefail
+
+NOTES_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/install-final-notes.txt"
+
+if [[ ! -s "$NOTES_FILE" ]]; then
+  exit 0
+fi
+
+echo ""
+echo "========================================"
+echo "📝 Final setup notes (actionable)"
+echo "========================================"
+while IFS= read -r note; do
+  [[ -z "$note" ]] && continue
+  echo " - $note"
+done < "$NOTES_FILE"
+echo "========================================"
+echo ""
+
+rm -f "$NOTES_FILE"

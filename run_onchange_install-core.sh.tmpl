@@ -5,6 +5,12 @@
 
 set -euo pipefail
 
+NOTES_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/install-final-notes.txt"
+mkdir -p "$(dirname "$NOTES_FILE")"
+add_note() {
+  printf '%s\n' "$1" >> "$NOTES_FILE"
+}
+
 # Helper functions
 is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
 is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
@@ -303,13 +309,10 @@ fi
 
 echo ""
 echo "✅ Core installation complete!"
-echo ""
-echo "📝 Next steps:"
-echo "  1. Restart your shell or run: exec zsh"
-echo "  2. Set up GPG key for commit signing: gpg --full-generate-key"
-echo "  3. Configure git signing key: git config --global user.signingkey YOUR_KEY_ID"
-echo "  4. Install 1Password CLI (run_once_install-1password-cli.sh)"
-echo "  5. Install security tools (run_once_install-security.sh)"
+
+add_note "Restart your shell: exec zsh"
+add_note "Set up GPG key: gpg --full-generate-key"
+add_note "Configure git signing key: git config --global user.signingkey YOUR_KEY_ID"
 if is_wsl; then
-  echo "  6. Docker: run 'newgrp docker' (or restart WSL) to use docker without sudo"
+  add_note "Docker on WSL: run 'newgrp docker' (or restart WSL) to use docker without sudo"
 fi

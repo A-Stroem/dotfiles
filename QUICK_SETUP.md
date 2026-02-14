@@ -137,7 +137,10 @@ Open your WSL2 Ubuntu terminal:
 # Option A: Run the bootstrap script directly
 curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-wsl.sh | bash
 
-# Option B: Or do it manually
+# Option B: If already cloned locally, run bootstrap from filesystem
+bash /path/to/dotfiles/scripts/bootstrap-from-zero-wsl.sh
+
+# Option C: Or do it manually
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl git ca-certificates
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
@@ -163,6 +166,7 @@ This single command will:
 2. Prompt for your configuration
 3. Copy all configs to `~/`
 4. Run install scripts (core packages, security tools, 1Password if personal, work tools if work)
+5. Print a final actionable-notes block after installs complete
 
 ### Step 3: Restart Shell
 
@@ -222,7 +226,10 @@ Open Terminal.app:
 # Option A: Run the bootstrap script
 curl -fsSL https://raw.githubusercontent.com/A-Stroem/dotfiles/main/scripts/bootstrap-from-zero-mac.sh | bash
 
-# Option B: Or do it manually
+# Option B: If already cloned locally, run bootstrap from filesystem
+bash /path/to/dotfiles/scripts/bootstrap-from-zero-mac.sh
+
+# Option C: Or do it manually
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install chezmoi git
 ```
