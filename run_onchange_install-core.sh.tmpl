@@ -310,7 +310,12 @@ fi
 if command -v pipx >/dev/null 2>&1; then
   echo "📦 Installing Ansible via pipx..."
   pipx install --include-deps ansible || pipx upgrade ansible
+  
+  echo "📦 Injecting controller dependencies..."
+  pipx inject ansible httpx || true 
+
   pipx install ansible-lint || pipx upgrade ansible-lint
+  
 fi
 
 # Create SSH sockets directory for connection multiplexing
