@@ -9,7 +9,8 @@ window-padding-y = 8
 window-decoration = true
 macos-titlebar-style = tabs
 
-{{- if .isDracula }}
+{{- $theme := index . "terminalTheme" -}}
+{{- if eq $theme "dracula" }}
 theme = dark:Dracula,light:GitHub Light
 {{- else }}
 theme = dark:Gruvbox Dark Hard,light:Gruvbox Light

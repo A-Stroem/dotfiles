@@ -27,4 +27,5 @@ if [[ ! -f "$INSTALL_SCRIPT" ]]; then
   exit 0
 fi
 
-bash "$INSTALL_SCRIPT" --theme {{ if eq .terminalTheme "dracula" }}"dracula"{{ else }}"gruvbox"{{ end }}
+{{- $theme := index . "terminalTheme" -}}
+bash "$INSTALL_SCRIPT" --theme {{ if eq $theme "dracula" }}"dracula"{{ else }}"gruvbox"{{ end }}
