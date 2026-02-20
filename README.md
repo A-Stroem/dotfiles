@@ -8,6 +8,7 @@ This repo configures shell, git, dev tooling, security scanners, Kubernetes tool
 
 - zsh + Starship prompt for context-heavy workflows
 - Homebrew (macOS) and apt (WSL/Linux) install automation
+- Networking toolkit automation (`nslookup`, `tcpdump`, `nmap`, `mtr`, `iperf3`)
 - mise runtime management (Node/Python/etc)
 - Security tooling: gitleaks, trivy, checkov, pre-commit, git-secrets
 - Terminal + editor theming with **Gruvbox** or **Dracula**
@@ -94,6 +95,8 @@ What theme switch updates:
 # Verify tools
 starship --version
 mise --version
+command -v nslookup
+tcpdump --version
 kubectl version --client
 helm version --short
 k9s version --short

@@ -150,6 +150,15 @@ if is_darwin; then
     wget \
     tree \
     htop
+
+  # Networking/connectivity tools
+  brew install \
+    bind \
+    tcpdump \
+    mtr \
+    nmap \
+    iperf3 \
+    whois
   
   # Install fzf keybindings (non-interactive)
   if [[ -x "$(brew --prefix)/opt/fzf/install" ]]; then
@@ -199,6 +208,18 @@ elif is_linux; then
     htop \
     unzip \
     vim
+
+  # Networking/connectivity tools
+  # dnsutils provides nslookup and dig
+  sudo apt install -y \
+    dnsutils \
+    tcpdump \
+    traceroute \
+    mtr-tiny \
+    nmap \
+    iperf3 \
+    whois \
+    netcat-openbsd
   
   # Install Starship (not in Ubuntu repos)
   if ! command -v starship >/dev/null 2>&1; then
