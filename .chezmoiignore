@@ -16,6 +16,7 @@ scripts/
 .git
 .gitignore
 .gitattributes
+.pre-commit-config.yaml
 
 # SSH private keys - manage separately or use git-crypt
 # Uncomment if you want to manage SSH keys outside chezmoi
