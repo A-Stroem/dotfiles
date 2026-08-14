@@ -1,0 +1,31 @@
+{{- if .installAnsible -}}
+#!/usr/bin/env bash
+# ============================================================
+# Ansible installation (ansible + ansible-lint via pipx)
+# ============================================================
+
+set -euo pipefail
+
+echo "📘 Installing Ansible..."
+
+if ! command -v pipx >/dev/null 2>&1; then
+  echo "❌ pipx not found. Run core install first."
+  exit 1
+fi
+
+pipx ensurepath || true
+
+echo "📦 Installing Ansible via pipx..."
+pipx install --include-deps ansible || pipx upgrade ansible
+
+echo "📦 Injecting controller dependencies..."
+pipx inject ansible httpx || true
+
+pipx install ansible-lint || pipx upgrade ansible-lint
+
+echo "✅ Ansible + ansible-lint installed"
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping Ansible (installAnsible = false)"
+exit 0
+{{- end -}}

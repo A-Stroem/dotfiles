@@ -1,0 +1,9 @@
+// Zellij config — managed by chezmoi
+// Opt-in local-machine multiplexer (installZellij profile). tmux is the
+// multiplexer used on remote/server machines — see docs/install-profiles.md.
+
+{{- $theme := index . "terminalTheme" }}
+theme "{{ if eq $theme "dracula" }}dracula{{ else }}gruvbox-dark{{ end }}"
+
+mouse_mode true
+pane_frames true

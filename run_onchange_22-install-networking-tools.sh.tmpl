@@ -1,0 +1,52 @@
+{{- if .installNetworkingTools -}}
+#!/usr/bin/env bash
+# ============================================================
+# Networking toolkit installation (dig, tcpdump, nmap, mtr, etc.)
+# ============================================================
+
+set -euo pipefail
+
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+
+echo "🌐 Installing networking toolkit..."
+
+if is_darwin; then
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "❌ Homebrew not found. Run core install first."
+    exit 1
+  fi
+
+  brew install \
+    bind \
+    tcpdump \
+    mtr \
+    nmap \
+    iperf3 \
+    whois
+
+  echo "✅ Networking toolkit installed (macOS)"
+
+elif is_linux; then
+  # dnsutils provides nslookup and dig
+  sudo apt install -y \
+    dnsutils \
+    tcpdump \
+    traceroute \
+    mtr-tiny \
+    nmap \
+    iperf3 \
+    whois \
+    netcat-openbsd
+
+  echo "✅ Networking toolkit installed (Linux)"
+
+else
+  echo "❌ Unsupported OS: $(uname -s)"
+  exit 1
+fi
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping networking toolkit (installNetworkingTools = false)"
+exit 0
+{{- end -}}

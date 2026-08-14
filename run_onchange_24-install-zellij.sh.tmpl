@@ -1,0 +1,58 @@
+{{- if .installZellij -}}
+#!/usr/bin/env bash
+# ============================================================
+# zellij installation (LOCAL MACHINES ONLY — opt-in)
+# tmux remains in core for remote/server use.
+# ============================================================
+
+set -euo pipefail
+
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+
+echo "🧩 Installing zellij..."
+
+if command -v zellij >/dev/null 2>&1; then
+  echo "✅ zellij already installed ($(zellij --version))"
+  exit 0
+fi
+
+if is_darwin; then
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "❌ Homebrew not found. Run core install first."
+    exit 1
+  fi
+  brew install zellij
+  echo "✅ zellij installed via Homebrew"
+
+elif is_linux; then
+  # zellij release assets use Rust target-triple arch names (x86_64/aarch64),
+  # not the amd64/arm64 convention used by kubectl/k9s/gitleaks in this repo.
+  zj_arch="$(uname -m)"
+  zj_tag="$(curl -fsSL https://api.github.com/repos/zellij-org/zellij/releases/latest | jq -r '.tag_name')"
+  zj_asset="zellij-${zj_arch}-unknown-linux-musl.tar.gz"
+  tmp_dir="$(mktemp -d)"
+
+  curl -fsSL -o "$tmp_dir/$zj_asset" "https://github.com/zellij-org/zellij/releases/download/${zj_tag}/${zj_asset}"
+  curl -fsSL -o "$tmp_dir/$zj_asset.sha256sum" "https://github.com/zellij-org/zellij/releases/download/${zj_tag}/${zj_asset}.sha256sum"
+
+  if (cd "$tmp_dir" && sha256sum --check --status "$zj_asset.sha256sum" 2>/dev/null); then
+    echo "✅ zellij checksum verified"
+  else
+    echo "⚠️  zellij checksum verification failed, installing anyway"
+  fi
+
+  tar xzf "$tmp_dir/$zj_asset" -C "$tmp_dir"
+  sudo install -o root -g root -m 0755 "$tmp_dir/zellij" /usr/local/bin/zellij
+  rm -rf "$tmp_dir"
+  echo "✅ zellij installed"
+
+else
+  echo "❌ Unsupported OS: $(uname -s)"
+  exit 1
+fi
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping zellij (installZellij = false)"
+exit 0
+{{- end -}}

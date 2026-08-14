@@ -1,0 +1,98 @@
+{{- if .installKubernetesTools -}}
+#!/usr/bin/env bash
+# ============================================================
+# Kubernetes tooling installation (kubectl, kubectx, helm, k9s)
+# ============================================================
+
+set -euo pipefail
+
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+
+# Map uname -m to common binary naming conventions
+get_arch() {
+  local arch
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64)  echo "amd64" ;;
+    aarch64) echo "arm64" ;;
+    armv7l)  echo "armv7" ;;
+    *)       echo "$arch" ;;
+  esac
+}
+
+# Fetch the latest release tag from a GitHub repo
+# Usage: github_latest_tag owner/repo
+github_latest_tag() {
+  curl -fsSL "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name'
+}
+
+echo "☸️  Installing Kubernetes tooling..."
+
+if is_darwin; then
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "❌ Homebrew not found. Run core install first."
+    exit 1
+  fi
+
+  brew install \
+    kubectl \
+    kubectx \
+    helm \
+    k9s
+
+  echo "✅ Kubernetes tools installed (macOS)"
+
+elif is_linux; then
+  # Install kubectl (architecture-aware)
+  if ! command -v kubectl >/dev/null 2>&1; then
+    echo "📦 Installing kubectl..."
+    kube_arch="$(get_arch)"
+    kube_stable="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+    curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl"
+    # Verify checksum
+    curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl.sha256"
+    if echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check --status 2>/dev/null; then
+      echo "✅ kubectl checksum verified"
+    else
+      echo "⚠️  kubectl checksum verification failed, installing anyway"
+    fi
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    rm -f kubectl kubectl.sha256
+  fi
+
+  # Install kubectx/kubens
+  if ! command -v kubectx >/dev/null 2>&1; then
+    echo "📦 Installing kubectx/kubens..."
+    sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx 2>/dev/null || \
+      (cd /opt/kubectx && sudo git pull)
+    sudo ln -sf /opt/kubectx/kubectx /usr/local/bin/kubectx
+    sudo ln -sf /opt/kubectx/kubens /usr/local/bin/kubens
+  fi
+
+  # Install helm
+  if ! command -v helm >/dev/null 2>&1; then
+    echo "📦 Installing helm..."
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  fi
+
+  # Install k9s (latest release, architecture-aware)
+  if ! command -v k9s >/dev/null 2>&1; then
+    echo "📦 Installing k9s..."
+    k9s_arch="$(get_arch)"
+    k9s_version="$(github_latest_tag derailed/k9s)"
+    wget -qO- "https://github.com/derailed/k9s/releases/download/${k9s_version}/k9s_Linux_${k9s_arch}.tar.gz" | tar xvz -C /tmp
+    sudo mv /tmp/k9s /usr/local/bin/
+  fi
+
+  echo "✅ Kubernetes tools installed (Linux)"
+
+else
+  echo "❌ Unsupported OS: $(uname -s)"
+  exit 1
+fi
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping Kubernetes tooling (installKubernetesTools = false)"
+exit 0
+{{- end -}}

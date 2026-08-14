@@ -2,6 +2,10 @@
 
 This folder contains quick-reference guides for tools installed by this dotfiles setup.
 
+## Install Profiles
+
+- [Install profiles (core vs opt-in)](install-profiles.md)
+
 ## Tool Guides
 
 - [1Password CLI](tools/1password-cli.md)
@@ -34,6 +38,7 @@ This folder contains quick-reference guides for tools installed by this dotfiles
 - [uv](tools/uv.md)
 - [wget](tools/wget.md)
 - [yq](tools/yq.md)
+- [zellij](tools/zellij.md)
 - [zoxide](tools/zoxide.md)
 - [zsh](tools/zsh.md)
 - [htop](tools/htop.md)

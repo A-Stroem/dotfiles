@@ -8,6 +8,17 @@
 {{- $terminalTheme = "gruvbox" -}}
 {{- end -}}
 
+{{- /* Opt-in install profiles. Core (shell essentials) always installs;
+       everything below is a togglable extra so a lightweight machine
+       doesn't get the full toolchain forced on it.
+       See docs/install-profiles.md. */ -}}
+{{- $installSecurityTools := promptBoolOnce . "installSecurityTools" "Install security scanning tools? (gitleaks, trivy, checkov, pre-commit, git-secrets) [recommended]" true -}}
+{{- $installKubernetesTools := promptBoolOnce . "installKubernetesTools" "Install Kubernetes tooling? (kubectl, kubectx/kubens, helm, k9s)" false -}}
+{{- $installContainerTools := promptBoolOnce . "installContainerTools" "Install container tooling? (Docker)" false -}}
+{{- $installNetworkingTools := promptBoolOnce . "installNetworkingTools" "Install networking toolkit? (dig, tcpdump, nmap, mtr, iperf3, whois, netcat)" false -}}
+{{- $installAnsible := promptBoolOnce . "installAnsible" "Install Ansible? (ansible + ansible-lint via pipx)" false -}}
+{{- $installZellij := promptBoolOnce . "installZellij" "Install zellij? (local-machine terminal multiplexer; tmux stays in core for remote/server use)" false -}}
+
 [data]
     machineType = {{ $machineType | quote }}
     name = {{ $name | quote }}
@@ -20,6 +31,15 @@
     isPersonal = {{ eq $machineType "personal" }}
     isDracula = {{ eq $terminalTheme "dracula" }}
     isGruvbox = {{ eq $terminalTheme "gruvbox" }}
+
+    # Opt-in install profiles — change later with `chezmoi init --prompt --apply`
+    # or `chezmoi edit-config` (see docs/install-profiles.md)
+    installSecurityTools = {{ $installSecurityTools }}
+    installKubernetesTools = {{ $installKubernetesTools }}
+    installContainerTools = {{ $installContainerTools }}
+    installNetworkingTools = {{ $installNetworkingTools }}
+    installAnsible = {{ $installAnsible }}
+    installZellij = {{ $installZellij }}
 
 [git]
     autoCommit = false

@@ -1,3 +1,4 @@
+{{- if .installSecurityTools -}}
 #!/usr/bin/env bash
 # ============================================================
 # Security tools installation (gitleaks, trivy, checkov)
@@ -37,7 +38,7 @@ github_latest_tag() {
 # ----------------------------
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "📦 Installing gitleaks..."
-  
+
   if is_darwin; then
     brew install gitleaks
   elif is_linux; then
@@ -49,7 +50,7 @@ if ! command -v gitleaks >/dev/null 2>&1; then
     sudo mv /tmp/gitleaks /usr/local/bin/
     sudo chmod +x /usr/local/bin/gitleaks
   fi
-  
+
   echo "✅ gitleaks installed"
 else
   echo "✅ gitleaks already installed"
@@ -60,7 +61,7 @@ fi
 # ----------------------------
 if ! command -v trivy >/dev/null 2>&1; then
   echo "📦 Installing trivy..."
-  
+
   if is_darwin; then
     brew install trivy
   elif is_linux; then
@@ -71,7 +72,7 @@ if ! command -v trivy >/dev/null 2>&1; then
     sudo apt-get update
     sudo apt-get install -y trivy
   fi
-  
+
   echo "✅ trivy installed"
 else
   echo "✅ trivy already installed"
@@ -82,7 +83,7 @@ fi
 # ----------------------------
 if ! command -v checkov >/dev/null 2>&1; then
   echo "📦 Installing checkov..."
-  
+
   if command -v pipx >/dev/null 2>&1; then
     pipx install checkov
   elif command -v pip3 >/dev/null 2>&1; then
@@ -90,7 +91,7 @@ if ! command -v checkov >/dev/null 2>&1; then
   else
     echo "⚠️  pipx/pip3 not found, skipping checkov installation"
   fi
-  
+
   echo "✅ checkov installed"
 else
   echo "✅ checkov already installed"
@@ -101,7 +102,7 @@ fi
 # ----------------------------
 if ! command -v pre-commit >/dev/null 2>&1; then
   echo "📦 Installing pre-commit..."
-  
+
   if command -v pipx >/dev/null 2>&1; then
     pipx install pre-commit
   elif command -v pip3 >/dev/null 2>&1; then
@@ -109,7 +110,7 @@ if ! command -v pre-commit >/dev/null 2>&1; then
   else
     echo "⚠️  pipx/pip3 not found, skipping pre-commit installation"
   fi
-  
+
   echo "✅ pre-commit installed"
 else
   echo "✅ pre-commit already installed"
@@ -120,7 +121,7 @@ fi
 # ----------------------------
 if ! command -v git-secrets >/dev/null 2>&1; then
   echo "📦 Installing git-secrets..."
-  
+
   if is_darwin; then
     brew install git-secrets
   elif is_linux; then
@@ -129,7 +130,7 @@ if ! command -v git-secrets >/dev/null 2>&1; then
       echo "📦 Installing build tools..."
       sudo apt-get install -y build-essential
     fi
-    
+
     # Clone and install
     if [ ! -d "/tmp/git-secrets" ]; then
       git clone https://github.com/awslabs/git-secrets.git /tmp/git-secrets
@@ -139,7 +140,7 @@ if ! command -v git-secrets >/dev/null 2>&1; then
     cd -
     rm -rf /tmp/git-secrets
   fi
-  
+
   echo "✅ git-secrets installed"
 else
   echo "✅ git-secrets already installed"
@@ -199,3 +200,8 @@ add_note "Enable git hooks per repo: pre-commit install"
 add_note "Security quick test: gitleaks detect --no-git"
 add_note "Security quick test: trivy fs ."
 add_note "Security quick test: checkov -d ."
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping security scanning tools (installSecurityTools = false)"
+exit 0
+{{- end -}}

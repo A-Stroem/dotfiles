@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================
 # Core package installation (macOS + WSL Ubuntu)
+# Shell essentials only. Kubernetes, containers, networking
+# toolkit, Ansible, and zellij are opt-in — see
+# docs/install-profiles.md.
 # ============================================================
 
 set -euo pipefail
@@ -14,25 +17,6 @@ add_note() {
 # Helper functions
 is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
 is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
-is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
-
-# Map uname -m to common binary naming conventions
-get_arch() {
-  local arch
-  arch="$(uname -m)"
-  case "$arch" in
-    x86_64)  echo "amd64" ;;
-    aarch64) echo "arm64" ;;
-    armv7l)  echo "armv7" ;;
-    *)       echo "$arch" ;;
-  esac
-}
-
-# Fetch the latest release tag from a GitHub repo
-# Usage: github_latest_tag owner/repo
-github_latest_tag() {
-  curl -fsSL "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name'
-}
 
 # Some systems have legacy SSH remotes for Homebrew taps.
 # Normalize them to HTTPS so brew update does not depend on SSH key setup.
@@ -55,56 +39,6 @@ normalize_homebrew_remotes() {
   done
 }
 
-# Install Docker Engine + Compose plugin on apt-based Linux.
-# Uses Docker's official repository when possible and falls back to distro packages.
-install_docker_linux() {
-  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    echo "✅ Docker and Docker Compose already installed"
-    return 0
-  fi
-
-  echo "📦 Installing Docker Engine + Docker Compose..."
-
-  # shellcheck disable=SC1091
-  . /etc/os-release
-  local distro="${ID:-ubuntu}"
-  local codename="${VERSION_CODENAME:-}"
-  local repo_file="/etc/apt/sources.list.d/docker.list"
-
-  if [[ -z "$codename" ]] && command -v lsb_release >/dev/null 2>&1; then
-    codename="$(lsb_release -cs)"
-  fi
-
-  if [[ "$distro" == "ubuntu" || "$distro" == "debian" ]] && [[ -n "$codename" ]]; then
-    sudo install -m 0755 -d /etc/apt/keyrings
-    if [[ ! -f /etc/apt/keyrings/docker.asc ]]; then
-      curl -fsSL "https://download.docker.com/linux/${distro}/gpg" | sudo tee /etc/apt/keyrings/docker.asc >/dev/null
-      sudo chmod a+r /etc/apt/keyrings/docker.asc
-    fi
-
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${distro} ${codename} stable" | \
-      sudo tee "$repo_file" >/dev/null
-
-    sudo apt update
-    sudo apt install -y \
-      docker-ce \
-      docker-ce-cli \
-      containerd.io \
-      docker-buildx-plugin \
-      docker-compose-plugin
-  else
-    echo "⚠️  Unsupported distro metadata for Docker repo (ID=${distro}, CODENAME=${codename})."
-    echo "   Falling back to distro Docker packages."
-    sudo apt install -y docker.io docker-compose-v2 docker-compose-plugin || \
-      sudo apt install -y docker.io docker-compose-plugin
-  fi
-
-  # Let the current user run docker without sudo after next login/newgrp.
-  sudo groupadd docker 2>/dev/null || true
-  sudo usermod -aG docker "$USER" || true
-}
-
 echo "🚀 Installing core packages..."
 
 # ----------------------------
@@ -112,22 +46,22 @@ echo "🚀 Installing core packages..."
 # ----------------------------
 if is_darwin; then
   echo "📦 Detected macOS - using Homebrew"
-  
+
   # Install Homebrew if missing
   if ! command -v brew >/dev/null 2>&1; then
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    
+
     # Add Homebrew to PATH for Apple Silicon
     if [[ "$(uname -m)" == "arm64" ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
   fi
-  
+
   # Update Homebrew
   normalize_homebrew_remotes
   brew update
-  
+
   # Install core packages
   brew install \
     git \
@@ -151,15 +85,6 @@ if is_darwin; then
     tree \
     htop
 
-  # Networking/connectivity tools
-  brew install \
-    bind \
-    tcpdump \
-    mtr \
-    nmap \
-    iperf3 \
-    whois
-  
   # Install fzf keybindings (non-interactive)
   if [[ -x "$(brew --prefix)/opt/fzf/install" ]]; then
     "$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc || true
@@ -169,14 +94,6 @@ if is_darwin; then
   echo "📦 Installing zsh plugins..."
   brew install zsh-syntax-highlighting zsh-autosuggestions
 
-  # Kubernetes tools
-  echo "📦 Installing Kubernetes tools..."
-  brew install \
-    kubectl \
-    kubectx \
-    helm \
-    k9s
-  
   echo "✅ macOS core packages installed"
 
 # ----------------------------
@@ -184,10 +101,10 @@ if is_darwin; then
 # ----------------------------
 elif is_linux; then
   echo "📦 Detected Linux - using apt"
-  
+
   # Update package list
   sudo apt update
-  
+
   # Install core packages available via apt
   sudo apt install -y \
     git \
@@ -209,24 +126,12 @@ elif is_linux; then
     unzip \
     vim
 
-  # Networking/connectivity tools
-  # dnsutils provides nslookup and dig
-  sudo apt install -y \
-    dnsutils \
-    tcpdump \
-    traceroute \
-    mtr-tiny \
-    nmap \
-    iperf3 \
-    whois \
-    netcat-openbsd
-  
   # Install Starship (not in Ubuntu repos)
   if ! command -v starship >/dev/null 2>&1; then
     echo "📦 Installing Starship..."
     curl -sS https://starship.rs/install.sh | sh -s -- -y
   fi
-  
+
   # Install mise (not in Ubuntu repos)
   if ! command -v mise >/dev/null 2>&1; then
     echo "📦 Installing mise..."
@@ -234,13 +139,13 @@ elif is_linux; then
     # Add to PATH for this session
     export PATH="$HOME/.local/bin:$PATH"
   fi
-  
+
   # Install uv (not in Ubuntu repos)
   if ! command -v uv >/dev/null 2>&1; then
     echo "📦 Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
-  
+
   # Install zsh plugins
   echo "📦 Installing zsh plugins..."
   sudo apt install -y zsh-syntax-highlighting zsh-autosuggestions 2>/dev/null || {
@@ -266,51 +171,7 @@ elif is_linux; then
     mkdir -p "$HOME/.local/bin"
     ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
   fi
-  
-  # Install kubectl (architecture-aware)
-  if ! command -v kubectl >/dev/null 2>&1; then
-    echo "📦 Installing kubectl..."
-    kube_arch="$(get_arch)"
-    kube_stable="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
-    curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl"
-    # Verify checksum
-    curl -LO "https://dl.k8s.io/release/${kube_stable}/bin/linux/${kube_arch}/kubectl.sha256"
-    if echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check --status 2>/dev/null; then
-      echo "✅ kubectl checksum verified"
-    else
-      echo "⚠️  kubectl checksum verification failed, installing anyway"
-    fi
-    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-    rm -f kubectl kubectl.sha256
-  fi
-  
-  # Install kubectx/kubens
-  if ! command -v kubectx >/dev/null 2>&1; then
-    echo "📦 Installing kubectx/kubens..."
-    sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx 2>/dev/null || \
-      (cd /opt/kubectx && sudo git pull)
-    sudo ln -sf /opt/kubectx/kubectx /usr/local/bin/kubectx
-    sudo ln -sf /opt/kubectx/kubens /usr/local/bin/kubens
-  fi
-  
-  # Install helm
-  if ! command -v helm >/dev/null 2>&1; then
-    echo "📦 Installing helm..."
-    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-  fi
-  
-  # Install k9s (latest release, architecture-aware)
-  if ! command -v k9s >/dev/null 2>&1; then
-    echo "📦 Installing k9s..."
-    k9s_arch="$(get_arch)"
-    k9s_version="$(github_latest_tag derailed/k9s)"
-    wget -qO- "https://github.com/derailed/k9s/releases/download/${k9s_version}/k9s_Linux_${k9s_arch}.tar.gz" | tar xvz -C /tmp
-    sudo mv /tmp/k9s /usr/local/bin/
-  fi
 
-  # Install Docker runtime + Compose (needed by docker aliases in zshrc)
-  install_docker_linux
-  
   echo "✅ Linux core packages installed"
 
 else
@@ -325,18 +186,6 @@ fi
 # Ensure pipx path is available
 if command -v pipx >/dev/null 2>&1; then
   pipx ensurepath || true
-fi
-
-# Install Ansible + ansible-lint via pipx (isolated from system Python)
-if command -v pipx >/dev/null 2>&1; then
-  echo "📦 Installing Ansible via pipx..."
-  pipx install --include-deps ansible || pipx upgrade ansible
-  
-  echo "📦 Injecting controller dependencies..."
-  pipx inject ansible httpx || true 
-
-  pipx install ansible-lint || pipx upgrade ansible-lint
-  
 fi
 
 # Create SSH sockets directory for connection multiplexing
@@ -361,6 +210,3 @@ echo "✅ Core installation complete!"
 add_note "Restart your shell: exec zsh"
 add_note "Set up GPG key: gpg --full-generate-key"
 add_note "Configure git signing key: git config --global user.signingkey YOUR_KEY_ID"
-if is_wsl; then
-  add_note "Docker on WSL: run 'newgrp docker' (or restart WSL) to use docker without sudo"
-fi

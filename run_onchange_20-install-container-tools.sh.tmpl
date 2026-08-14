@@ -1,0 +1,110 @@
+{{- if .installContainerTools -}}
+#!/usr/bin/env bash
+# ============================================================
+# Container tooling installation (Docker)
+# ============================================================
+
+set -euo pipefail
+
+NOTES_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/install-final-notes.txt"
+mkdir -p "$(dirname "$NOTES_FILE")"
+add_note() {
+  printf '%s\n' "$1" >> "$NOTES_FILE"
+}
+
+is_darwin() { [[ "$(uname -s)" == "Darwin" ]]; }
+is_linux() { [[ "$(uname -s)" == "Linux" ]]; }
+is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
+
+echo "🐳 Installing container tooling..."
+
+# ----------------------------
+# macOS installation
+# ----------------------------
+if is_darwin; then
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "❌ Homebrew not found. Run core install first."
+    exit 1
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "📦 Installing Docker Desktop..."
+    brew install --cask docker
+  else
+    echo "✅ Docker already installed"
+  fi
+
+  add_note "Docker Desktop: launch it once from Applications to finish setup and start the daemon"
+  echo "✅ Docker Desktop installed (macOS)"
+
+# ----------------------------
+# Linux installation
+# ----------------------------
+elif is_linux; then
+  # Install Docker Engine + Compose plugin on apt-based Linux.
+  # Uses Docker's official repository when possible and falls back to distro packages.
+  install_docker_linux() {
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+      echo "✅ Docker and Docker Compose already installed"
+      return 0
+    fi
+
+    echo "📦 Installing Docker Engine + Docker Compose..."
+
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    local distro="${ID:-ubuntu}"
+    local codename="${VERSION_CODENAME:-}"
+    local repo_file="/etc/apt/sources.list.d/docker.list"
+
+    if [[ -z "$codename" ]] && command -v lsb_release >/dev/null 2>&1; then
+      codename="$(lsb_release -cs)"
+    fi
+
+    if [[ "$distro" == "ubuntu" || "$distro" == "debian" ]] && [[ -n "$codename" ]]; then
+      sudo install -m 0755 -d /etc/apt/keyrings
+      if [[ ! -f /etc/apt/keyrings/docker.asc ]]; then
+        curl -fsSL "https://download.docker.com/linux/${distro}/gpg" | sudo tee /etc/apt/keyrings/docker.asc >/dev/null
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+      fi
+
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${distro} ${codename} stable" | \
+        sudo tee "$repo_file" >/dev/null
+
+      sudo apt update
+      sudo apt install -y \
+        docker-ce \
+        docker-ce-cli \
+        containerd.io \
+        docker-buildx-plugin \
+        docker-compose-plugin
+    else
+      echo "⚠️  Unsupported distro metadata for Docker repo (ID=${distro}, CODENAME=${codename})."
+      echo "   Falling back to distro Docker packages."
+      sudo apt install -y docker.io docker-compose-v2 docker-compose-plugin || \
+        sudo apt install -y docker.io docker-compose-plugin
+    fi
+
+    # Let the current user run docker without sudo after next login/newgrp.
+    sudo groupadd docker 2>/dev/null || true
+    sudo usermod -aG docker "$USER" || true
+  }
+
+  install_docker_linux
+
+  if is_wsl; then
+    add_note "Docker on WSL: run 'newgrp docker' (or restart WSL) to use docker without sudo"
+  fi
+
+  echo "✅ Docker Engine + Compose installed (Linux)"
+
+else
+  echo "❌ Unsupported OS: $(uname -s)"
+  exit 1
+fi
+{{- else -}}
+#!/usr/bin/env bash
+echo "⏭️  Skipping container tooling (installContainerTools = false)"
+exit 0
+{{- end -}}
