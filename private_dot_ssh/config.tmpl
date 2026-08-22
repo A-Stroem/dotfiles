@@ -2,8 +2,63 @@
 # SSH baseline - safe defaults
 # ============================================================
 
+{{- if eq .chezmoi.os "darwin" }}
+# ---- Homelab -------------------------------------------------------------
+#
+# Private keys live in 1Password, not on disk. Each block pins the matching
+# PUBLIC key with IdentitiesOnly=yes, so ssh asks the agent for exactly that key.
+#
+# Why pin: the 1Password agent holds 8+ keys and offers them in order, while
+# sshd's default MaxAuthTries is 6 — without pinning, connections fail with
+# "Too many authentication failures" and which hosts break shifts as keys are
+# added. Pinning makes it deterministic.
+#
+# Adding a host: export its public key with
+#   SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock \
+#     ssh-add -L | grep '<1Password item>' > ~/.ssh/<name>.pub
+# then copy a block below.
+
+# nas-01 (TrueNAS) — automation account used by Ansible.
+# The alias needs an explicit HostName: a bare "nas-01" resolves via mDNS to
+# something else on the LAN and fails host key verification.
+Host nas-01
+  HostName 10.0.10.10
+  User ansible
+  IdentityFile ~/.ssh/nas-01-ansible.pub
+  IdentitiesOnly yes
+
+Host 10.0.10.10 100.72.98.124
+  User ansible
+  IdentityFile ~/.ssh/nas-01-ansible.pub
+  IdentitiesOnly yes
+
+# nas-01 SFTP service account (port 2222, atmoz/sftp container)
+Host nas-sftp
+  HostName 10.0.10.10
+  Port 2222
+  User sftp_admin
+  IdentityFile ~/.ssh/nas-01-sftp-admin.pub
+  IdentitiesOnly yes
+
+# pi-01 (reverse proxy + monitoring)
+Host pi-01
+  HostName 10.0.10.11
+  User asj
+  IdentityFile ~/.ssh/pi-01-asj.pub
+  IdentitiesOnly yes
+
+Host 10.0.10.11 100.118.148.0
+  User asj
+  IdentityFile ~/.ssh/pi-01-asj.pub
+  IdentitiesOnly yes
+{{- end }}
+
 # Global defaults for all hosts
 Host *
+{{- if eq .chezmoi.os "darwin" }}
+  # Private keys are served by the 1Password SSH agent; nothing on disk.
+  IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{- end }}
   # Add keys to SSH agent automatically
   AddKeysToAgent yes
 
@@ -45,6 +100,11 @@ Host gitlab.com
   HostName gitlab.com
   User git
   IdentitiesOnly no
+
+# srv-01 (Hetzner, headscale) block removed 2026-08-22 — headscale retired, the
+# host is being decommissioned, and it was only ever reachable over the old
+# tailnet at 100.64.0.3 with ~/.ssh/id_ed25519_headscale (now parked). Its SSH
+# is closed to the internet, so the Hetzner console is the only way in.
 
 # Example host patterns for work servers
 # Uncomment and customize as needed
