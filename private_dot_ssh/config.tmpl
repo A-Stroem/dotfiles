@@ -19,8 +19,12 @@
 # then copy a block below.
 
 # nas-01 (TrueNAS) — automation account used by Ansible.
-# The alias needs an explicit HostName: a bare "nas-01" resolves via mDNS to
-# something else on the LAN and fails host key verification.
+#
+# HostName is pinned to the LAN address on purpose. A bare "nas-01" DOES resolve
+# correctly via Tailscale MagicDNS (to the tailnet address), but going over the
+# LAN keeps admin access working when the tailnet is down — which matters most
+# precisely when something is broken. Use nas-01.anhinga-rockhopper.ts.net when
+# you specifically want the tailnet path.
 Host nas-01
   HostName 10.0.10.10
   User ansible
